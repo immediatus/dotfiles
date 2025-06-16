@@ -1,0 +1,54 @@
+[general]
+import = [
+    "~/.config/alacritty/themes/citylights.toml"
+]
+
+[font]
+size = 12.0
+
+[font.bold]
+family = "Hack Nerd Font Mono"
+style = "Bold"
+
+[font.bold_italic]
+family = "Hack Nerd Font Mono"
+style = "Bold Italic"
+
+[font.italic]
+family = "Hack Nerd Font Mono"
+style = "Italic"
+
+[font.normal]
+family = "Hack Nerd Font Mono"
+style = "Regular"
+
+[selection]
+save_to_clipboard = true
+
+[cursor]
+style = { shape = "Underline", blinking = "Always" }
+vi_mode_style = { shape = "Block", blinking = "Off" }
+
+[mouse]
+hide_when_typing = true
+
+[window]
+decorations = "Full"
+decorations_theme_variant = "Dark"
+startup_mode = "Windowed"
+dynamic_padding = true
+padding = { x = 5, y = 5 }
+dynamic_title = true
+opacity = 1.0
+
+[terminal]
+shell = { program = "/bin/zsh", args = [ "--login", "-c", "tmux new-session -A -s main" ] }
+
+[keyboard]
+bindings = [
+    { key = "`", mods = "Control", action = "ToggleFullscreen" }
+]
+
+[env]
+TERM = "xterm-256color"
+
