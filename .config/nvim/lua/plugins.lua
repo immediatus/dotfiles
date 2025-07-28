@@ -2,34 +2,12 @@ require('helpers/globals')
 
 return {
   {
-    'VonHeikemen/lsp-zero.nvim',
-    branch = 'v3.x',
-    config = function() require('extensions.lsp') end,
-    dependencies = {
-      -- LSP Support
-      { 'neovim/nvim-lspconfig' },
-      { 'williamboman/mason.nvim' },
-      { 'williamboman/mason-lspconfig.nvim' },
-      -- Autocompletion
-      { 'hrsh7th/nvim-cmp' },
-      { 'hrsh7th/cmp-buffer' },
-      { 'hrsh7th/cmp-path' },
-      { 'hrsh7th/cmp-nvim-lsp' },
-      { 'hrsh7th/cmp-nvim-lua' },
-    },
-  },
-  {
     'nvim-neo-tree/neo-tree.nvim',
     branch = 'v3.x',
     cmd = 'Neotree',
     config = function() require('extensions.neotree') end,
     dependencies = { 'MunifTanjim/nui.nvim', 'nvim-lua/plenary.nvim' },
     lazy = true,
-  },
-  {
-    'nvim-treesitter/nvim-treesitter-context',
-    lazy = false,
-    opts = { mode = 'cursor' },
   },
   {
     'nvim-telescope/telescope.nvim',
@@ -45,11 +23,6 @@ return {
     },
     lazy = false,
   },
-
-  {
-    'onsails/lspkind-nvim',
-    config = function() require('extensions.lspkind') end,
-  },
   {
     'nvim-lualine/lualine.nvim',
     config = function() require('extensions.lualine') end,
@@ -57,19 +30,6 @@ return {
   {
     'lewis6991/gitsigns.nvim',
     config = function() require('extensions.gitsigns') end,
-  },
-  {
-    'nvim-treesitter/nvim-treesitter',
-    build = ':TSUpdate',
-    config = function() require('extensions.treesitter') end,
-    event = { 'BufNewFile', 'BufReadPost' },
-    lazy = true,
-  },
-  {
-    'Wansmer/treesj',
-    dependencies = { 'nvim-treesitter/nvim-treesitter' },
-    keys = { '<space>j', '<space>m', '<space>s' },
-    opts = { max_join_length = 100 },
   },
   {
     'dstein64/vim-startuptime',
