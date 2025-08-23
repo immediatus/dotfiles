@@ -4,7 +4,7 @@ shell_patterns=true
 auto_save_setup=true
 preallocate_space=false
 auto_menu=false
-use_internal_view=true
+use_internal_view=false
 use_internal_edit=false
 clear_before_exec=true
 confirm_delete=true
@@ -87,11 +87,11 @@ skin=yadt256-defbg
 
 [Layout]
 output_lines=0
-left_panel_size=159
+left_panel_size=95
 top_panel_size=0
 message_visible=false
 keybar_visible=true
-xterm_title=false
+xterm_title=true
 command_prompt=true
 menubar_visible=false
 free_space=false
@@ -115,6 +115,7 @@ clipboard_paste=
 base_color=
 xterm-256color=
 color_terminals=
+linux=
 
 [Panels]
 simple_swap=false
@@ -138,8 +139,23 @@ torben_fj_mode=false
 quick_search_mode=2
 select_flags=6
 
+[FindFile]
+file_case_sens=true
+file_shell_pattern=true
+file_find_recurs=true
+follow_symlinks=false
+file_skip_hidden=false
+file_all_charsets=false
+content_case_sens=true
+content_regexp=false
+content_first_hit=false
+content_whole_words=false
+content_all_charsets=false
+ignore_dirs_enable=true
+ignore_dirs=
+
 [Panelize]
-Find *.orig after patching=find . -name \\*.orig -print
 Find rejects after patching=find . -name \\*.rej -print
 Find SUID and SGID programs=find . \\( \\( -perm -04000 -a -perm /011 \\) -o \\( -perm -02000 -a -perm /01 \\) \\) -print
+Find *.orig after patching=find . -name \\*.orig -print
 Modified git files=git ls-files --modified

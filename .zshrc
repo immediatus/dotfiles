@@ -54,7 +54,7 @@ bindkey '^[|' zsh_gh_copilot_explain  # bind Alt+shift+\ to explain
 bindkey '^[\' zsh_gh_copilot_suggest  # bind Alt+\ to suggest
 
 
-# Gemini CLI
+# LLM Keys
 export GEMINI_API_KEY=""
-
-
+export ANTHROPIC_API_KEY=""
+export OPENAI_API_KEY=""
