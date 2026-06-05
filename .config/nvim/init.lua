@@ -1,5 +1,0 @@
-require 'keybindings'
-require 'lazy-bootstrap'
-require('lazy').setup 'plugins'
-require 'settings'
-require 'autocmds'

@@ -1,0 +1,45 @@
+[input]
+prepend_keymap = [
+  { on = '<Esc>',        run  = 'close',                  desc = 'Cancel input'}
+]
+
+[mgr]
+prepend_keymap = [
+	{ on = "<Enter>",           run = "plugin smart-enter",                         desc = "Open file or directory smartly" },
+	{ on = "q",                 run = "close",                                      desc = "Close the current tab or the manager if it's the last tab" },
+
+	{ on = '<C-n>',             run = 'find_arrow',              								    desc = 'Go to the next found' },
+	{ on = '<C-p>',             run = 'find_arrow --previous',   								    desc = 'Go to the previous found' },
+
+	{ on = [ 'y', 'y' ],  	    run = 'yank',                                       desc = 'Yank selected files (copy)' },
+	{ on = [ 'y', 'p' ],        run = 'copy path',               							      desc = 'Yank the file path' },
+	{ on = [ 'y', 'd' ],        run = 'copy dirname',            							      desc = 'Yank the directory path' },
+	{ on = [ 'y', 'f' ],        run = 'copy filename',           							      desc = 'Yank the filename' },
+	{ on = [ 'y', 'n' ],        run = 'copy name_without_ext',   								 		desc = 'Yank the filename without extension' },
+
+	{ on = [ 'g', 'b' ],        run = 'back',                                    		desc = 'Go to previous directory ' },
+	{ on = [ 'g', '<Space>' ],  run = 'cd --interactive',                        		desc = 'Go to a directory interactively' },
+
+	{ on = 'L',                 run = 'link',                                    		desc = 'Symlink the absolute path of yanked files' },
+  { on = 'e',                 run = 'shell -- bash "$@"',                      		desc = 'Execute the selected file' },
+	{ on = 'f',                 run = 'plugin fzf',                              		desc = 'Jump to a directory or reveal a file using fzf' },
+
+  { on = '<Backspace>',       run = 'unyank',                                  		desc = 'Unyank' },
+  { on = '<Esc>',             run = ['unyank', 'escape'],                      		desc = 'Clean Unyank/selected, cancel search' },
+  { on = 's',                 run = 'shell --block -- $SHELL',                 		desc = 'Open shell here' },
+
+	{ on = 'C',                 run = 'plugin ouch',                             		desc = 'Compress with ouch' },
+
+	{ on = '`',                 run = 'plugin bunny',                      		      desc = 'Jump to a directory with bunny' },
+	{ on = '<S-`>',             run = 'plugin bunny fuzzy',                      		desc = 'Fuzzy jump to a directory with bunny' },
+  
+	{ on = ':', 							  run = 'plugin custom-shell -- auto --interactive  --wait', 	desc = 'Run a command' },
+
+	{ on = '<A-v>',             run = 'plugin toggle-pane max-preview',         		desc = 'Maximize preview' },
+	{ on = '<A-V>',             run = 'plugin toggle-pane min-preview',         		desc = 'Toggle preview' },
+
+	{ on = "<C-Up>",            run = "seek -5", 	                                  desc = "Scroll preview up" },
+	{ on = "<C-Down>",          run = "seek 5",                                     desc = "Scroll preview down" },
+	{ on = "<C-PageUp>",   	    run = "seek -15",                                   desc = "Scroll preview up 10" },
+	{ on = "<C-PageDown>",      run = "seek 15",                                    desc = "Scroll preview down 10" },
+]

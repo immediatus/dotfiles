@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# ~/.dotfiles/stow/zsh/.local/bin/podman
+# Intelligent path-translating wrapper for Podman in Distrobox container
+
+# Helper to translate a single path
+translate_path() {
+  local p="$1"
+  # Make path absolute if it isn't
+  if [[ "$p" != /* ]]; then
+    p="$PWD/$p"
+  fi
+  # Clean up dot segments and resolve symlinks
+  p=$(readlink -f "$p" 2>/dev/null || realpath "$p" 2>/dev/null || echo "$p")
+
+  # Perform mappings to translate container paths to host paths:
+  if [[ "$p" == /run/host/var/home/yuriy/* ]]; then
+    p="${p/#\/run\/host\/var\/home\/yuriy//var/home/yuriy}"
+  elif [[ "$p" == /run/host/home/yuriy/* ]]; then
+    p="${p/#\/run\/host\/home\/yuriy//var/home/yuriy}"
+  elif [[ "$p" == /home/yuriy/* ]]; then
+    p="${p/#\/home\/yuriy//var/home/yuriy/.local/share/dev-workspace}"
+  fi
+  echo "$p"
+}
+
+translate_volume() {
+  local vol="$1"
+  local src="${vol%%:*}"
+  local rest="${vol#*:}"
+  local translated_src="$(translate_path "$src")"
+  if [[ "$src" == "$vol" ]]; then
+    echo "$translated_src"
+  else
+    echo "$translated_src:$rest"
+  fi
+}
+
+# Check if we are inside a container
+if [ -f /run/.containerenv ] && command -v distrobox-host-exec &>/dev/null; then
+  # Translate arguments
+  args=()
+  i=1
+  while (( i <= $# )); do
+    arg="${!i}"
+    case "$arg" in
+      -v|--volume)
+        next_i=$((i+1))
+        val="${!next_i}"
+        args+=("$arg" "$(translate_volume "$val")")
+        (( i += 2 ))
+        ;;
+      --volume=*)
+        val="${arg#*=}"
+        args+=("--volume=$(translate_volume "$val")")
+        (( i += 1 ))
+        ;;
+      -w|--workdir)
+        next_i=$((i+1))
+        val="${!next_i}"
+        args+=("$arg" "$(translate_path "$val")")
+        (( i += 2 ))
+        ;;
+      --workdir=*)
+        val="${arg#*=}"
+        args+=("--workdir=$(translate_path "$val")")
+        (( i += 1 ))
+        ;;
+      *)
+        args+=("$arg")
+        (( i += 1 ))
+        ;;
+    esac
+  done
+  exec distrobox-host-exec podman "${args[@]}"
+else
+  # If executed on host directly, run the real podman binary
+  exec /usr/bin/podman "$@"
+fi

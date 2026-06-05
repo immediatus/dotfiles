@@ -1,0 +1,30 @@
+# ~/.dotfiles/.gitignore
+# Ignore system and editor swap/temp files
+*~
+*.swp
+*.tmp
+.DS_Store
+
+# Ignore credentials or local settings if any are created
+.env
+.env.local
+
+# Ignore container state/logs
+*.log
+
+# Ignore runtime and cache directories in stow
+stow/zsh/.local/share/
+stow/zsh/.local/state/
+stow/zellij/.config/zellij/config.kdl.bak*
+*yazi_cmd_history
+
+# Ignore cloneable Zsh plugins
+stow/zsh/.zsh/plugins/zsh-autosuggestions/
+stow/zsh/.zsh/plugins/zsh-syntax-highlighting/
+
+# Ignore local shell override configurations
+stow/zsh/.zshrc.local
+stow/git/.gitconfig.local
+
+
+

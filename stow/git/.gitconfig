@@ -1,0 +1,7 @@
+[credential]
+	helper = store
+[include]
+	path = ~/.gitconfig.local
+[alias]
+	lg = log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30
+

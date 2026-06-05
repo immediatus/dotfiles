@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# ~/.dotfiles/stow/zsh/.local/bin/docker
+# Wrapper that redirects docker commands to our path-translating podman wrapper
+
+exec "$(dirname "$0")/podman" "$@"

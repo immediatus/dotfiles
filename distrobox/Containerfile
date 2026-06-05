@@ -1,0 +1,21 @@
+# ~/.dotfiles/distrobox/Containerfile
+FROM registry.fedoraproject.org/fedora:44
+
+# Install dnf-plugins-core
+RUN dnf install -y dnf-plugins-core
+
+# Enable COPR repositories for yazi and starship
+RUN dnf copr enable -y lihaohong/yazi \
+    && dnf copr enable -y atim/starship
+
+# Install core CLI tools & build dependencies
+RUN dnf install -y \
+    zsh eza bat fzf neovim yazi starship git npm python3-pip stow \
+    gcc gcc-c++ make unzip ripgrep fd-find wl-clipboard findutils \
+    && dnf clean all
+
+# Set Zsh as default
+RUN chsh -s /usr/bin/zsh
+
+# Install Claude Code and Devcontainers CLI globally
+RUN npm install -g @anthropic-ai/claude-code @devcontainers/cli && npm cache clean --force

@@ -1,0 +1,61 @@
+# ~/.dotfiles/stow/alacritty/.config/alacritty/alacritty.toml
+# Highly reproducible Alacritty configuration for Fedora Atomic 44 host
+
+[general]
+import = [
+    "~/.config/alacritty/themes/synthwave_84.toml"
+]
+
+[font]
+size = 11.0
+
+[font.bold]
+family = "SauceCodePro Nerd Font"
+style = "Light"
+
+[font.bold_italic]
+family = "SauceCodePro Nerd Font"
+style = "Light Italic"
+
+[font.italic]
+family = "SauceCodePro Nerd Font"
+style = "Light Italic"
+
+[font.normal]
+family = "SauceCodePro Nerd Font"
+style = "Light"
+
+[selection]
+save_to_clipboard = true
+
+[cursor]
+style = { shape = "Underline", blinking = "Off" }
+vi_mode_style = { shape = "Block", blinking = "Off" }
+
+[mouse]
+hide_when_typing = true
+
+[window]
+decorations = "None"
+decorations_theme_variant = "Dark"
+startup_mode = "Windowed"
+dynamic_padding = true
+padding = { x = 5, y = 5 }
+dynamic_title = true
+opacity = 1.0
+blur = false
+
+[terminal]
+shell = { program = "/usr/bin/bash", args = [ "--login", "-c", "distrobox enter dev-workspace" ] }
+
+[keyboard]
+bindings = [
+    { key = "`", mods = "Control", action = "ToggleFullscreen" },
+    { key = "V", mods = "Control", action = "Paste" },
+    { key = "C", mods = "Control", action = "Copy" },
+    { key = "C", mods = "Control|Shift", chars = "\u0003" },
+    { key = "V", mods = "Control|Shift", chars = "\u001b[86;6u" },
+]
+
+[env]
+TERM = "xterm-256color"
