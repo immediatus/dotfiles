@@ -13,12 +13,13 @@ translate_path() {
   p=$(readlink -f "$p" 2>/dev/null || realpath "$p" 2>/dev/null || echo "$p")
 
   # Perform mappings to translate container paths to host paths:
-  if [[ "$p" == /run/host/var/home/yuriy/* ]]; then
-    p="${p/#\/run\/host\/var\/home\/yuriy//var/home/yuriy}"
-  elif [[ "$p" == /run/host/home/yuriy/* ]]; then
-    p="${p/#\/run\/host\/home\/yuriy//var/home/yuriy}"
-  elif [[ "$p" == /home/yuriy/* ]]; then
-    p="${p/#\/home\/yuriy//var/home/yuriy/.local/share/dev-workspace}"
+  local user_name="$USER"
+  if [[ "$p" == /run/host/var/home/${user_name}/* ]]; then
+    p="${p/#\/run\/host\/var\/home\/${user_name}/\/var\/home\/${user_name}}"
+  elif [[ "$p" == /run/host/home/${user_name}/* ]]; then
+    p="${p/#\/run\/host\/home\/${user_name}/\/var\/home\/${user_name}}"
+  elif [[ "$p" == /home/${user_name}/* ]]; then
+    p="${p/#\/home\/${user_name}/\/var\/home\/${user_name}\/.local\/share\/dev-workspace}"
   fi
   echo "$p"
 }

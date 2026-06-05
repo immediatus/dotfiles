@@ -26,5 +26,13 @@ stow/zsh/.zsh/plugins/zsh-syntax-highlighting/
 stow/zsh/.zshrc.local
 stow/git/.gitconfig.local
 
+# Ignore local GGUF models and runtime state files in models
+models/*.gguf
+models/*.bin
+models/.active_env
+models/.active_model
+models/kv_cache_dump/
+
+
 
 

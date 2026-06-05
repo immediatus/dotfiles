@@ -8,9 +8,9 @@ AddDevice=/dev/dri
 AddCapability=SYS_PTRACE
 PodmanArgs=--ipc=host
 # Mount your model directory containing GGUF files
-Volume=/var/home/yuriy/models:/models:z
+Volume=%h/models:/models:z
 # Mount cache directory for saving slots
-Volume=/var/home/yuriy/models/kv_cache_dump:/models/kv_cache_dump:z
+Volume=%h/models/kv_cache_dump:/models/kv_cache_dump:z
 # Run llama-server with dynamic model and parameters from EnvironmentFile
 Exec=--model $ACTIVE_MODEL --alias local -np 1 -n -1 --path /models/public --slot-save-path /models/kv_cache_dump --host 0.0.0.0 --port 8080 $ACTIVE_ARGS
 PublishPort=8080:8080
@@ -21,7 +21,8 @@ Environment=HSA_XNACK=1
 Environment=HSA_FORCE_FINE_GRAIN_PCIE=1
 
 [Service]
-EnvironmentFile=/var/home/yuriy/models/.active_env
+EnvironmentFile=%h/models/.active_env
+
 
 [Install]
 WantedBy=default.target

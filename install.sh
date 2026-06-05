@@ -25,6 +25,13 @@ chmod 700 "${HOST_HOME}/code/.Trash-1000" "${HOST_HOME}/code/.Trash-1000/files" 
 mkdir -p "${HOST_HOME}/.ssh"
 chmod 700 "${HOST_HOME}/.ssh"
 
+# Ensure host-level bin directory exists and symlink the llama script
+mkdir -p "${HOST_HOME}/.local/bin"
+ln -sf "${DOTFILES}/stow/zsh/.local/bin/llama" "${HOST_HOME}/.local/bin/llama"
+
+# Symlink host-level models.json configuration
+ln -sf "${DOTFILES}/models/models.json" "${HOST_HOME}/models/models.json"
+
 echo "=== Phase 1.5: Installing Fonts on Host ==="
 FONT_DIR="${HOST_HOME}/.local/share/fonts"
 if [ ! -d "${FONT_DIR}/SauceCodePro" ]; then
@@ -55,7 +62,7 @@ systemctl --user daemon-reload
 # Initialize the active model env file if this is a fresh install
 if [[ ! -f "${HOST_HOME}/models/.active_env" ]]; then
   echo "      Initializing default model profile (expert)..."
-  bash "${HOST_HOME}/Sync/config/.local/bin/llama" switch expert || true
+  bash "${DOTFILES}/stow/zsh/.local/bin/llama" switch expert || true
 fi
 
 systemctl --user restart llama-rocm.service || true
@@ -71,31 +78,33 @@ distrobox rm -f dev-station 2>/dev/null || true
 # Create container with isolated home directory and direct volume mounts for host paths
 distrobox create --name dev-workspace --image my-dev-box \
     --home "${HOST_HOME}/.local/share/dev-workspace" \
-    --volume "${HOST_HOME}/code:/home/yuriy/code" \
-    --volume "${HOST_HOME}/models:/home/yuriy/models" \
-    --volume "${HOST_HOME}/.claude:/home/yuriy/.claude" \
+    --volume "${HOST_HOME}/code:/home/${USER}/code" \
+    --volume "${HOST_HOME}/models:/home/${USER}/models" \
+    --volume "${HOST_HOME}/.claude:/home/${USER}/.claude" \
+    --volume "${HOST_HOME}/Sync:/home/${USER}/Sync" \
     -Y
 
 echo "=== Phase 5: Initializing GNU Stow inside Container ==="
+# Clean up existing files in container home to prevent Stow/symlink conflicts
+distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local ~/.local/bin/llama ~/.local/bin/docker ~/.local/bin/podman'
+
 # Symlink host's .dotfiles folder inside the container home so Stow can find it
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.dotfiles" "/home/yuriy/.local/share/dev-workspace/.dotfiles"
+distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.dotfiles" "/home/${USER}/.local/share/dev-workspace/.dotfiles"
 
 # Symlink direct volume mount paths inside the container home for path alignment
-distrobox enter dev-workspace -- ln -sfn "/home/yuriy/code" "/home/yuriy/.local/share/dev-workspace/code"
-distrobox enter dev-workspace -- ln -sfn "/home/yuriy/models" "/home/yuriy/.local/share/dev-workspace/models"
-distrobox enter dev-workspace -- ln -sfn "/home/yuriy/.claude" "/home/yuriy/.local/share/dev-workspace/.claude"
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/code" "/home/${USER}/.local/share/dev-workspace/code"
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/models" "/home/${USER}/.local/share/dev-workspace/models"
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.claude" "/home/${USER}/.local/share/dev-workspace/.claude"
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync" "/home/${USER}/.local/share/dev-workspace/Sync"
 # Symlink host .gemini via /run/host so agy conversations are accessible inside container
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.gemini" "/home/yuriy/.local/share/dev-workspace/.gemini"
+distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.gemini" "/home/${USER}/.local/share/dev-workspace/.gemini"
 # Symlink host .claude.json via /run/host so Claude Code state and authentication are shared
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.claude.json" "/home/yuriy/.local/share/dev-workspace/.claude.json"
+distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.claude.json" "/home/${USER}/.local/share/dev-workspace/.claude.json"
 # Symlink host .ssh via /run/host so SSH keys and configurations are shared
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.ssh" "/home/yuriy/.local/share/dev-workspace/.ssh"
-# Symlink host synced local configurations via /run/host
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/Sync/config/.zshrc.local" "/home/yuriy/.local/share/dev-workspace/.zshrc.local"
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/Sync/config/.gitconfig.local" "/home/yuriy/.local/share/dev-workspace/.gitconfig.local"
-
-# Clean up existing files in container home to prevent Stow/symlink conflicts
-distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local'
+distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.ssh" "/home/${USER}/.local/share/dev-workspace/.ssh"
+# Symlink host synced local configurations via volume mount
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync/config/.zshrc.local" "/home/${USER}/.local/share/dev-workspace/.zshrc.local"
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync/config/.gitconfig.local" "/home/${USER}/.local/share/dev-workspace/.gitconfig.local"
 
 
 # Clone Oh My Zsh to the container's isolated home directory if not present
@@ -107,20 +116,22 @@ fi
 # Ensure Zsh plugins are cloned in dotfiles stow structure before running Stow
 echo "Ensuring cloneable Zsh plugins are present..."
 mkdir -p "${DOTFILES}/stow/zsh/.zsh/plugins"
-if [ ! -d "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-autosuggestions" ]; then
-    echo "Cloning zsh-autosuggestions..."
+if [ ! -f "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
+    echo "Cloning or restoring zsh-autosuggestions..."
+    rm -rf "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-autosuggestions"
     git clone https://github.com/zsh-users/zsh-autosuggestions.git "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-autosuggestions"
 fi
-if [ ! -d "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting" ]; then
-    echo "Cloning zsh-syntax-highlighting..."
+if [ ! -f "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
+    echo "Cloning or restoring zsh-syntax-highlighting..."
+    rm -rf "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting"
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting"
 fi
 
 # Run GNU Stow inside the container to symlink dev configurations
-distrobox enter dev-workspace -- stow -d "/home/yuriy/.local/share/dev-workspace/.dotfiles/stow" -t "/home/yuriy/.local/share/dev-workspace" alacritty zsh starship nvim yazi git eza npm
+distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" alacritty zsh starship nvim yazi git eza npm
 
 # Change default container shell to Zsh
-distrobox enter dev-workspace -- sudo chsh -s /usr/bin/zsh yuriy
+distrobox enter dev-workspace -- sudo chsh -s /usr/bin/zsh "${USER}"
 
 echo "=== Phase 6: Cleaning Host Home of Duplicate Configurations ==="
 # Prevent host environment contamination

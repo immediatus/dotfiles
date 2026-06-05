@@ -153,6 +153,18 @@ to_host_path() {
         p="${p/#\/run\/host\/var\/home\/$USER/$host_home}"
     elif [[ "$p" == /run/host/home/$USER/* ]]; then
         p="${p/#\/run\/host\/home\/$USER/$host_home}"
+    elif [[ "$p" == /home/$USER/code/* ]]; then
+        # Direct volume mount, do not translate to isolated home
+        :
+    elif [[ "$p" == /home/$USER/models/* ]]; then
+        # Direct volume mount, do not translate to isolated home
+        :
+    elif [[ "$p" == /home/$USER/.claude/* ]]; then
+        # Direct volume mount, do not translate to isolated home
+        :
+    elif [[ "$p" == /home/$USER/Sync/* ]]; then
+        # Direct volume mount, do not translate to isolated home
+        :
     elif [[ "$p" == /home/$USER/* ]]; then
         p="${p/#\/home\/$USER/$host_home/.local/share/dev-workspace}"
     fi
@@ -162,11 +174,11 @@ to_host_path() {
 # Private helper to spin up devcontainers
 _start_devcontainer() {
     if [ ! -d ".devcontainer" ]; then
-        echo "No .devcontainer found in the current directory."
+        echo "No .devcontainer found in the current directory." >&2
         return 1
     fi
 
-    echo "Spinning up the development workspace..."
+    echo "Spinning up the development workspace..." >&2
     local PODMAN_BIN=$(which podman || echo "$HOME/.local/bin/podman")
     local COMPOSE_BIN=$(which podman-compose || which docker-compose 2>/dev/null || echo "")
     local folder_name=$(basename "$PWD")
@@ -180,7 +192,7 @@ _start_devcontainer() {
     devcontainer up \
         --workspace-folder . \
         --docker-path "$PODMAN_BIN" \
-        ${COMPOSE_BIN:+--docker-compose-path "$COMPOSE_BIN"}
+        ${COMPOSE_BIN:+--docker-compose-path "$COMPOSE_BIN"} >&2
 
     local container_id=$("$PODMAN_BIN" ps -q --filter "label=devcontainer.local_folder=$host_pwd" | head -n 1)
 
@@ -190,7 +202,7 @@ _start_devcontainer() {
     fi
 
     if [ -z "$container_id" ]; then
-        echo "Error: Container vanished or failed to start. Run 'podman ps -a' to debug."
+        echo "Error: Container vanished or failed to start. Run 'podman ps -a' to debug." >&2
         return 1
     fi
 
@@ -233,7 +245,16 @@ enter() {
         local folder_name=$(basename "$PWD")
         local PODMAN_BIN=$(which podman || echo "$HOME/.local/bin/podman")
 
-        echo "Target acquired: $container_id. Injecting interactive terminal..."
+        local shell_bin="bash"
+        if "$PODMAN_BIN" exec "$container_id" sh -c "command -v zsh" &>/dev/null; then
+            shell_bin="zsh"
+        elif "$PODMAN_BIN" exec "$container_id" sh -c "command -v bash" &>/dev/null; then
+            shell_bin="bash"
+        else
+            shell_bin="sh"
+        fi
+
+        echo "Target acquired: $container_id. Injecting interactive terminal (${shell_bin})..."
         if [ "$mode" = "claude" ]; then
             "$PODMAN_BIN" exec -it \
                 --workdir "/workspaces/$folder_name" \
@@ -247,7 +268,7 @@ enter() {
             "$PODMAN_BIN" exec -it \
                 --workdir "/workspaces/$folder_name" \
                 "$container_id" \
-                zsh
+                "$shell_bin"
         fi
     else
         echo "Error: No .devcontainer folder found in the current directory."
