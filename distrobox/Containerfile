@@ -1,4 +1,5 @@
 # ~/.dotfiles/distrobox/Containerfile
+FROM docker.io/oven/bun:latest AS bun-source
 FROM registry.fedoraproject.org/fedora:44
 
 # Install dnf-plugins-core
@@ -13,6 +14,9 @@ RUN dnf install -y \
     zsh eza bat fzf neovim yazi starship git npm python3-pip stow \
     gcc gcc-c++ make unzip ripgrep fd-find wl-clipboard findutils \
     && dnf clean all
+
+# Copy bun from bun-source
+COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun
 
 # Set Zsh as default
 RUN chsh -s /usr/bin/zsh
