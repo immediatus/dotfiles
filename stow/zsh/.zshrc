@@ -211,29 +211,10 @@ _start_devcontainer() {
 
 # General container entry tool
 enter() {
-    local mode="shell"
-    local target=""
-    
-    # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -c|--claude)
-                mode="claude"
-                shift
-                ;;
-            *)
-                target="$1"
-                shift
-                ;;
-        esac
-    done
+    local target="$1"
 
     # Case 1: Enter a Distrobox container by name
     if [ -n "$target" ]; then
-        if [ "$mode" = "claude" ]; then
-            echo "Error: --claude flag can only be used with project devcontainers (without specifying a container name)."
-            return 1
-        fi
         distrobox-host-exec distrobox enter "$target"
         return $?
     fi
@@ -255,28 +236,39 @@ enter() {
         fi
 
         echo "Target acquired: $container_id. Injecting interactive terminal (${shell_bin})..."
-        if [ "$mode" = "claude" ]; then
-            "$PODMAN_BIN" exec -it \
-                --workdir "/workspaces/$folder_name" \
-                "$container_id" \
-                claude \
-                    --channels plugin:telegram@claude-plugins-official \
-                    --dangerously-skip-permissions \
-                    --allow-dangerously-skip-permissions \
-                    --remote-control "$folder_name"
-        else
-            "$PODMAN_BIN" exec -it \
-                --workdir "/workspaces/$folder_name" \
-                "$container_id" \
-                "$shell_bin"
-        fi
+        "$PODMAN_BIN" exec -it \
+            --workdir "/workspaces/$folder_name" \
+            "$container_id" \
+            "$shell_bin"
     else
         echo "Error: No .devcontainer folder found in the current directory."
         echo ""
         echo "Usage:"
         echo "  enter <container-name>      Enter a Distrobox container (e.g., enter dev-station)"
         echo "  enter                       Spin up and enter the current project's devcontainer"
-        echo "  enter -c, --claude          Spin up the devcontainer and launch Claude Code inside"
+        return 1
+    fi
+}
+
+# Launch Claude Code inside project devcontainer
+xclaude() {
+    if [ -d ".devcontainer" ]; then
+        local container_id
+        container_id=$(_start_devcontainer) || return 1
+        local folder_name=$(basename "$PWD")
+        local PODMAN_BIN=$(which podman || echo "$HOME/.local/bin/podman")
+
+        echo "Target acquired: $container_id. Launching Claude Code..."
+        "$PODMAN_BIN" exec -it \
+            --workdir "/workspaces/$folder_name" \
+            "$container_id" \
+            claude \
+                --channels plugin:telegram@claude-plugins-official \
+                --dangerously-skip-permissions \
+                --allow-dangerously-skip-permissions \
+                --remote-control "$folder_name"
+    else
+        echo "Error: No .devcontainer folder found in the current directory."
         return 1
     fi
 }
