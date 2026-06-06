@@ -25,10 +25,11 @@ chmod 700 "${HOST_HOME}/code/.Trash-1000" "${HOST_HOME}/code/.Trash-1000/files" 
 mkdir -p "${HOST_HOME}/.ssh"
 chmod 700 "${HOST_HOME}/.ssh"
 
-# Ensure host-level .claude directory and .claude.json exist with container-accessible labels
+# Ensure host-level .claude, .claude.json, and .gemini exist with container-accessible labels
 mkdir -p "${HOST_HOME}/.claude"
 touch "${HOST_HOME}/.claude.json"
-chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" 2>/dev/null || true
+mkdir -p "${HOST_HOME}/.gemini"
+chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" "${HOST_HOME}/.gemini" "${HOST_HOME}/.local/bin/agy" 2>/dev/null || true
 
 # Ensure host-level bin directory exists and symlink the llama script
 mkdir -p "${HOST_HOME}/.local/bin"
@@ -138,6 +139,8 @@ distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspa
 # Symlink bun and bunx inside container .local/bin for MCP servers compatibility
 distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bun" "/home/${USER}/.local/share/dev-workspace/.local/bin/bun"
 distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bunx" "/home/${USER}/.local/share/dev-workspace/.local/bin/bunx"
+# Symlink agy inside container .local/bin for developer use
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.local/bin/agy" "/home/${USER}/.local/share/dev-workspace/.local/bin/agy"
 
 # Change default container shell to Zsh
 distrobox enter dev-workspace -- sudo chsh -s /usr/bin/zsh "${USER}"
