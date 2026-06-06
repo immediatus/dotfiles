@@ -130,6 +130,10 @@ fi
 # Run GNU Stow inside the container to symlink dev configurations
 distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" alacritty zsh starship nvim yazi git eza npm
 
+# Symlink bun and bunx inside container .local/bin for MCP servers compatibility
+distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bun" "/home/${USER}/.local/share/dev-workspace/.local/bin/bun"
+distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bunx" "/home/${USER}/.local/share/dev-workspace/.local/bin/bunx"
+
 # Change default container shell to Zsh
 distrobox enter dev-workspace -- sudo chsh -s /usr/bin/zsh "${USER}"
 
