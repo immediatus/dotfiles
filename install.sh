@@ -89,19 +89,19 @@ echo "=== Phase 5: Initializing GNU Stow inside Container ==="
 distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local ~/.local/bin/llama ~/.local/bin/docker ~/.local/bin/podman'
 
 # Symlink host's .dotfiles folder inside the container home so Stow can find it
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.dotfiles" "/home/${USER}/.local/share/dev-workspace/.dotfiles"
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.dotfiles" "/home/${USER}/.local/share/dev-workspace/.dotfiles"
 
 # Symlink direct volume mount paths inside the container home for path alignment
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/code" "/home/${USER}/.local/share/dev-workspace/code"
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/models" "/home/${USER}/.local/share/dev-workspace/models"
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.claude" "/home/${USER}/.local/share/dev-workspace/.claude"
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync" "/home/${USER}/.local/share/dev-workspace/Sync"
-# Symlink host .gemini via /run/host so agy conversations are accessible inside container
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.gemini" "/home/${USER}/.local/share/dev-workspace/.gemini"
-# Symlink host .claude.json via /run/host so Claude Code state and authentication are shared
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.claude.json" "/home/${USER}/.local/share/dev-workspace/.claude.json"
-# Symlink host .ssh via /run/host so SSH keys and configurations are shared
-distrobox enter dev-workspace -- ln -sfn "/run/host${HOST_HOME}/.ssh" "/home/${USER}/.local/share/dev-workspace/.ssh"
+# Symlink host .gemini so agy conversations are accessible inside container
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.gemini" "/home/${USER}/.local/share/dev-workspace/.gemini"
+# Symlink host .claude.json so Claude Code state and authentication are shared
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.claude.json" "/home/${USER}/.local/share/dev-workspace/.claude.json"
+# Symlink host .ssh so SSH keys and configurations are shared
+distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.ssh" "/home/${USER}/.local/share/dev-workspace/.ssh"
 # Symlink host synced local configurations via volume mount
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync/config/.zshrc.local" "/home/${USER}/.local/share/dev-workspace/.zshrc.local"
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync/config/.gitconfig.local" "/home/${USER}/.local/share/dev-workspace/.gitconfig.local"
