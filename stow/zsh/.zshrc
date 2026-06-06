@@ -189,6 +189,9 @@ _start_devcontainer() {
     # Translate PWD to host visible path for querying container
     local host_pwd=$(to_host_path "$PWD")
 
+    # Ensure host Claude configuration files have the correct SELinux labels for container access
+    chcon -R -t container_file_t "/home/$USER/.claude" "/home/$USER/.claude.json" &>/dev/null || true
+
     HOME="/home/$USER" devcontainer up \
         --workspace-folder . \
         --docker-path "$PODMAN_BIN" \

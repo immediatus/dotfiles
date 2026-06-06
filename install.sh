@@ -25,6 +25,11 @@ chmod 700 "${HOST_HOME}/code/.Trash-1000" "${HOST_HOME}/code/.Trash-1000/files" 
 mkdir -p "${HOST_HOME}/.ssh"
 chmod 700 "${HOST_HOME}/.ssh"
 
+# Ensure host-level .claude directory and .claude.json exist with container-accessible labels
+mkdir -p "${HOST_HOME}/.claude"
+touch "${HOST_HOME}/.claude.json"
+chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" 2>/dev/null || true
+
 # Ensure host-level bin directory exists and symlink the llama script
 mkdir -p "${HOST_HOME}/.local/bin"
 ln -sf "${DOTFILES}/stow/zsh/.local/bin/llama" "${HOST_HOME}/.local/bin/llama"
