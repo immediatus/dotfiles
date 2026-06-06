@@ -189,10 +189,10 @@ _start_devcontainer() {
     # Translate PWD to host visible path for querying container
     local host_pwd=$(to_host_path "$PWD")
 
-    devcontainer up \
+    HOME="/home/$USER" devcontainer up \
         --workspace-folder . \
         --docker-path "$PODMAN_BIN" \
-        ${COMPOSE_BIN:+--docker-compose-path "$COMPOSE_BIN"} >&2
+        ${COMPOSE_BIN:+--docker-compose-path} ${COMPOSE_BIN:+"$COMPOSE_BIN"} >&2
 
     local container_id=$("$PODMAN_BIN" ps -q --filter "label=devcontainer.local_folder=$host_pwd" | head -n 1)
 

@@ -13,6 +13,7 @@ RUN dnf copr enable -y lihaohong/yazi \
 RUN dnf install -y \
     zsh eza bat fzf neovim yazi starship git npm python3-pip stow \
     gcc gcc-c++ make unzip ripgrep fd-find wl-clipboard findutils \
+    python3-pygments podman-compose \
     && dnf clean all
 
 # Copy bun from bun-source
