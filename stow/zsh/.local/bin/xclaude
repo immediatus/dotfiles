@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions --allow-dangerously-skip-permissions --remote-control "$(basename "$PWD")" "$@"

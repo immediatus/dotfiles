@@ -105,7 +105,6 @@ alias open='xdg-open'
 alias cdev='claude-dev'
 alias code='opencode'
 alias yy='yazi'
-alias xclaude='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions --allow-dangerously-skip-permissions --remote-control $(basename $PWD)'
 
 # -----------------------------------------------------------------------------
 # 5. Fuzzy Finder (fzf) Configuration
