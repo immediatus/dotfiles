@@ -105,6 +105,7 @@ alias open='xdg-open'
 alias cdev='claude-dev'
 alias code='opencode'
 alias yy='yazi'
+alias xclaude='claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions --allow-dangerously-skip-permissions --remote-control $(basename $PWD)'
 
 # -----------------------------------------------------------------------------
 # 5. Fuzzy Finder (fzf) Configuration
@@ -250,28 +251,7 @@ enter() {
     fi
 }
 
-# Launch Claude Code inside project devcontainer
-xclaude() {
-    if [ -d ".devcontainer" ]; then
-        local container_id
-        container_id=$(_start_devcontainer) || return 1
-        local folder_name=$(basename "$PWD")
-        local PODMAN_BIN=$(which podman || echo "$HOME/.local/bin/podman")
 
-        echo "Target acquired: $container_id. Launching Claude Code..."
-        "$PODMAN_BIN" exec -it \
-            --workdir "/workspaces/$folder_name" \
-            "$container_id" \
-            claude \
-                --channels plugin:telegram@claude-plugins-official \
-                --dangerously-skip-permissions \
-                --allow-dangerously-skip-permissions \
-                --remote-control "$folder_name"
-    else
-        echo "Error: No .devcontainer folder found in the current directory."
-        return 1
-    fi
-}
 
 # Source Zsh Plugins (Manual overrides if not managed by OhMyZsh)
 if [ -f "$HOME/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
