@@ -1,0 +1,9 @@
+(
+    rules: "",
+    model: "pc105",
+    layout: "us,ua",
+    variant: ",",
+    options: Some("ctrl:swap_lwin_lctl"),
+    repeat_delay: 400,
+    repeat_rate: 25,
+)

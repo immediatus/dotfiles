@@ -12,6 +12,51 @@ rm -f "${HOST_HOME}/.config/alacritty/alacritty.toml"
 ln -sf "${DOTFILES}/stow/alacritty/.config/alacritty/alacritty.toml" "${HOST_HOME}/.config/alacritty/alacritty.toml"
 ln -sfn "${DOTFILES}/stow/alacritty/.config/alacritty/themes" "${HOST_HOME}/.config/alacritty/themes"
 
+# Stow or Symlink COSMIC configurations on host
+echo "=== Phase 1.2: Stowing COSMIC configuration on host ==="
+if command -v stow &>/dev/null; then
+    echo "      Stowing COSMIC configuration using GNU Stow..."
+    for item in ".config/cosmic" ".config/dconf/cosmic" ".config/environment.d/cosmic.conf" ".config/gtk-4.0/cosmic" "Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png"; do
+        if [ -e "${HOST_HOME}/${item}" ] && [ ! -L "${HOST_HOME}/${item}" ]; then
+            echo "      Backing up existing host file/folder ${item} to ${item}.bak..."
+            rm -rf "${HOST_HOME}/${item}.bak"
+            mv "${HOST_HOME}/${item}" "${HOST_HOME}/${item}.bak"
+        fi
+    done
+    stow -d "${DOTFILES}/stow" -t "${HOST_HOME}" cosmic
+else
+    echo "      GNU Stow not found on host. Falling back to manual symlinking..."
+    if [ -d "${HOST_HOME}/.config/cosmic" ] && [ ! -L "${HOST_HOME}/.config/cosmic" ]; then
+        rm -rf "${HOST_HOME}/.config/cosmic.bak"
+        mv "${HOST_HOME}/.config/cosmic" "${HOST_HOME}/.config/cosmic.bak"
+    fi
+    ln -sfn "${DOTFILES}/stow/cosmic/.config/cosmic" "${HOST_HOME}/.config/cosmic"
+
+    mkdir -p "${HOST_HOME}/.config/dconf" "${HOST_HOME}/.config/environment.d" "${HOST_HOME}/.config/gtk-4.0"
+    if [ -f "${HOST_HOME}/.config/dconf/cosmic" ] && [ ! -L "${HOST_HOME}/.config/dconf/cosmic" ]; then
+        mv "${HOST_HOME}/.config/dconf/cosmic" "${HOST_HOME}/.config/dconf/cosmic.bak"
+    fi
+    ln -sf "${DOTFILES}/stow/cosmic/.config/dconf/cosmic" "${HOST_HOME}/.config/dconf/cosmic"
+
+    if [ -f "${HOST_HOME}/.config/environment.d/cosmic.conf" ] && [ ! -L "${HOST_HOME}/.config/environment.d/cosmic.conf" ]; then
+        mv "${HOST_HOME}/.config/environment.d/cosmic.conf" "${HOST_HOME}/.config/environment.d/cosmic.conf.bak"
+    fi
+    ln -sf "${DOTFILES}/stow/cosmic/.config/environment.d/cosmic.conf" "${HOST_HOME}/.config/environment.d/cosmic.conf"
+
+    if [ -d "${HOST_HOME}/.config/gtk-4.0/cosmic" ] && [ ! -L "${HOST_HOME}/.config/gtk-4.0/cosmic" ]; then
+        rm -rf "${HOST_HOME}/.config/gtk-4.0/cosmic.bak"
+        mv "${HOST_HOME}/.config/gtk-4.0/cosmic" "${HOST_HOME}/.config/gtk-4.0/cosmic.bak"
+    fi
+    ln -sfn "${DOTFILES}/stow/cosmic/.config/gtk-4.0/cosmic" "${HOST_HOME}/.config/gtk-4.0/cosmic"
+
+    mkdir -p "${HOST_HOME}/Pictures/wallpapers"
+    if [ -f "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" ] && [ ! -L "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" ]; then
+        mv "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png.bak"
+    fi
+    ln -sf "${DOTFILES}/stow/cosmic/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png"
+fi
+
+
 # Ensure host-level models directory exists
 echo "      Ensuring host models directory exists..."
 mkdir -p "${HOST_HOME}/models"

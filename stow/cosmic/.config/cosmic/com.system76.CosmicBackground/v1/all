@@ -1,0 +1,9 @@
+(
+    output: "all",
+    source: Path("/var/home/yuriy/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png"),
+    filter_by_theme: true,
+    rotation_frequency: 300,
+    filter_method: Lanczos,
+    scaling_mode: Zoom,
+    sampling_method: Alphanumeric,
+)

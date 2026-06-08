@@ -1,0 +1,12 @@
+{
+    (
+        modifiers: [],
+        key: "XF86AudioPlay",
+    ): System(PlayPause),
+    (
+        modifiers: [
+            Super,
+        ],
+        key: "Return",
+    ): Spawn("alacritty"),
+}
