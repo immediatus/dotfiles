@@ -110,11 +110,22 @@ echo "=== Phase 2: Activating Llama-ROCm Service via Quadlet ==="
 # daemon-reload triggers the Quadlet generator which creates the unit.
 systemctl --user daemon-reload
 
-# Initialize the active model env file if this is a fresh install
-if [[ ! -f "${HOST_HOME}/models/.active_env" ]]; then
-  echo "      Initializing default model profile (expert)..."
-  bash "${DOTFILES}/stow/zsh/.local/bin/llama" switch expert || true
+# Sync active model env file with the latest definitions in models.json
+ACTIVE_PROFILE="expert"
+if [[ -f "${HOST_HOME}/models/.active_model" ]]; then
+  ACTIVE_PROFILE=$(python3 -c "
+import json
+try:
+    models = json.load(open('${HOST_HOME}/models/models.json'))
+    active = open('${HOST_HOME}/models/.active_model').read().strip()
+    profile = next((k for k, v in models.items() if v.get('file') == active), 'expert')
+    print(profile)
+except Exception:
+    print('expert')
+" 2>/dev/null || echo "expert")
 fi
+echo "      Syncing active model profile (${ACTIVE_PROFILE}) with models.json..."
+bash "${DOTFILES}/stow/zsh/.local/bin/llama" switch "${ACTIVE_PROFILE}" || true
 
 systemctl --user restart llama-rocm.service || true
 
