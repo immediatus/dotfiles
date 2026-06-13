@@ -198,6 +198,24 @@ distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bunx" "/home/${USER}/.l
 # Symlink agy inside container .local/bin for developer use
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.local/bin/agy" "/home/${USER}/.local/share/dev-workspace/.local/bin/agy"
 
+# Ensure Claude symlink inside container .local/bin is valid and points to the latest local version (or globally installed fallback)
+distrobox enter dev-workspace -- sh -c '
+  CLAUDE_BIN_DIR="$HOME/.local/bin"
+  CLAUDE_VERSIONS_DIR="$HOME/.local/share/claude/versions"
+  mkdir -p "$CLAUDE_BIN_DIR"
+  if [ -d "$CLAUDE_VERSIONS_DIR" ] && [ "$(ls -A "$CLAUDE_VERSIONS_DIR" 2>/dev/null)" ]; then
+    LATEST_CLAUDE=$(ls -vd "$CLAUDE_VERSIONS_DIR"/* 2>/dev/null | tail -n 1)
+    if [ -x "$LATEST_CLAUDE" ]; then
+      ln -sfn "$LATEST_CLAUDE" "$CLAUDE_BIN_DIR/claude"
+      echo "      Synced Claude symlink to latest version: $LATEST_CLAUDE"
+    fi
+  else
+    ln -sfn "/usr/local/bin/claude" "$CLAUDE_BIN_DIR/claude"
+    echo "      Synced Claude symlink to global fallback: /usr/local/bin/claude"
+  fi
+'
+
+
 # Change default container shell to Zsh
 distrobox enter dev-workspace -- sudo chsh -s /usr/bin/zsh "${USER}"
 
