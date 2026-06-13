@@ -137,7 +137,7 @@ distrobox create --name dev-workspace --image my-dev-box \
 
 echo "=== Phase 5: Initializing GNU Stow inside Container ==="
 # Clean up existing files in container home to prevent Stow/symlink conflicts
-distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local ~/.local/bin/llama ~/.local/bin/docker ~/.local/bin/podman'
+distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local ~/.local/bin/llama ~/.local/bin/docker ~/.local/bin/podman ~/.local/bin/xagy ~/.local/bin/xclaude'
 
 # Symlink host's .dotfiles folder inside the container home so Stow can find it
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.dotfiles" "/home/${USER}/.local/share/dev-workspace/.dotfiles"

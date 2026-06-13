@@ -2,7 +2,7 @@
 # Written from scratch for a clean, reproducible setup
 
 [mgr]
-ratio          = [ 1, 4, 4 ]
+ratio          = [ 2, 4, 4 ]
 sort_by        = "alphabetical"
 sort_sensitive = false
 sort_reverse   = false

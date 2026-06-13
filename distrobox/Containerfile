@@ -5,16 +5,23 @@ FROM registry.fedoraproject.org/fedora:44
 # Install dnf-plugins-core
 RUN dnf install -y dnf-plugins-core
 
+# Enable RPM Fusion (free + nonfree) for ffmpeg and media tools
+RUN dnf install -y \
+    "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
+    "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
+
 # Enable COPR repositories for yazi and starship
 RUN dnf copr enable -y lihaohong/yazi \
     && dnf copr enable -y atim/starship
 
 # Install core CLI tools & build dependencies
 RUN dnf install -y \
-    zsh eza bat fzf neovim yazi starship git npm python3-pip stow \
+    zsh eza bat fzf neovim yazi starship git npm python3-pip stow chafa \
     gcc gcc-c++ make unzip ripgrep fd-find wl-clipboard findutils \
     python3-pygments podman-compose \
-    && dnf clean all
+    ffmpeg \
+    && dnf clean all \
+    && ln -sf /usr/bin/7z /usr/local/bin/7zz
 
 # Copy bun from bun-source
 COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun

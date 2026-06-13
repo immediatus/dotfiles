@@ -1,12 +1,23 @@
 {
     (
         modifiers: [],
-        key: "XF86AudioPlay",
-    ): System(PlayPause),
+        key: "Print",
+    ): Disable,
+    (
+        modifiers: [
+            Ctrl,
+            Shift,
+        ],
+        key: "4",
+    ): System(Screenshot),
     (
         modifiers: [
             Super,
         ],
         key: "Return",
     ): Spawn("alacritty"),
+    (
+        modifiers: [],
+        key: "XF86AudioPlay",
+    ): System(PlayPause),
 }
