@@ -14,46 +14,38 @@ ln -sfn "${DOTFILES}/stow/alacritty/.config/alacritty/themes" "${HOST_HOME}/.con
 
 # Stow or Symlink COSMIC configurations on host
 echo "=== Phase 1.2: Stowing COSMIC configuration on host ==="
+# Clean up existing host locations to prevent symlink conflicts and force unfolding
+for item in ".config/cosmic" ".config/dconf/cosmic" ".config/environment.d/cosmic.conf" ".config/gtk-4.0/cosmic" "Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png"; do
+    if [ -L "${HOST_HOME}/${item}" ]; then
+        echo "      Removing existing host symlink ${item}..."
+        rm -f "${HOST_HOME}/${item}"
+    elif [ -e "${HOST_HOME}/${item}" ]; then
+        echo "      Backing up existing host file/folder ${item} to ${item}.bak..."
+        rm -rf "${HOST_HOME}/${item}.bak"
+        mv "${HOST_HOME}/${item}" "${HOST_HOME}/${item}.bak"
+    fi
+done
+
 if command -v stow &>/dev/null; then
-    echo "      Stowing COSMIC configuration using GNU Stow..."
-    for item in ".config/cosmic" ".config/dconf/cosmic" ".config/environment.d/cosmic.conf" ".config/gtk-4.0/cosmic" "Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png"; do
-        if [ -e "${HOST_HOME}/${item}" ] && [ ! -L "${HOST_HOME}/${item}" ]; then
-            echo "      Backing up existing host file/folder ${item} to ${item}.bak..."
-            rm -rf "${HOST_HOME}/${item}.bak"
-            mv "${HOST_HOME}/${item}" "${HOST_HOME}/${item}.bak"
-        fi
-    done
-    stow -d "${DOTFILES}/stow" -t "${HOST_HOME}" cosmic
+    echo "      Stowing COSMIC configuration using GNU Stow (with --no-folding)..."
+    stow --no-folding -d "${DOTFILES}/stow" -t "${HOST_HOME}" cosmic
 else
     echo "      GNU Stow not found on host. Falling back to manual symlinking..."
-    if [ -d "${HOST_HOME}/.config/cosmic" ] && [ ! -L "${HOST_HOME}/.config/cosmic" ]; then
-        rm -rf "${HOST_HOME}/.config/cosmic.bak"
-        mv "${HOST_HOME}/.config/cosmic" "${HOST_HOME}/.config/cosmic.bak"
-    fi
-    ln -sfn "${DOTFILES}/stow/cosmic/.config/cosmic" "${HOST_HOME}/.config/cosmic"
-
-    mkdir -p "${HOST_HOME}/.config/dconf" "${HOST_HOME}/.config/environment.d" "${HOST_HOME}/.config/gtk-4.0"
-    if [ -f "${HOST_HOME}/.config/dconf/cosmic" ] && [ ! -L "${HOST_HOME}/.config/dconf/cosmic" ]; then
-        mv "${HOST_HOME}/.config/dconf/cosmic" "${HOST_HOME}/.config/dconf/cosmic.bak"
-    fi
-    ln -sf "${DOTFILES}/stow/cosmic/.config/dconf/cosmic" "${HOST_HOME}/.config/dconf/cosmic"
-
-    if [ -f "${HOST_HOME}/.config/environment.d/cosmic.conf" ] && [ ! -L "${HOST_HOME}/.config/environment.d/cosmic.conf" ]; then
-        mv "${HOST_HOME}/.config/environment.d/cosmic.conf" "${HOST_HOME}/.config/environment.d/cosmic.conf.bak"
-    fi
-    ln -sf "${DOTFILES}/stow/cosmic/.config/environment.d/cosmic.conf" "${HOST_HOME}/.config/environment.d/cosmic.conf"
-
-    if [ -d "${HOST_HOME}/.config/gtk-4.0/cosmic" ] && [ ! -L "${HOST_HOME}/.config/gtk-4.0/cosmic" ]; then
-        rm -rf "${HOST_HOME}/.config/gtk-4.0/cosmic.bak"
-        mv "${HOST_HOME}/.config/gtk-4.0/cosmic" "${HOST_HOME}/.config/gtk-4.0/cosmic.bak"
-    fi
-    ln -sfn "${DOTFILES}/stow/cosmic/.config/gtk-4.0/cosmic" "${HOST_HOME}/.config/gtk-4.0/cosmic"
-
-    mkdir -p "${HOST_HOME}/Pictures/wallpapers"
-    if [ -f "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" ] && [ ! -L "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" ]; then
-        mv "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png.bak"
-    fi
-    ln -sf "${DOTFILES}/stow/cosmic/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png" "${HOST_HOME}/Pictures/wallpapers/mountain-valley-with-solitary-tree-27efee0c-bc58-463e-8ddc-2ea2abf6924d.png"
+    # Recreate directory structure and symlink individual files to prevent directory folding
+    (
+        cd "${DOTFILES}/stow/cosmic"
+        find . -type d | while read -r dir; do
+            mkdir -p "${HOST_HOME}/${dir}"
+        done
+        find . -type f | while read -r file; do
+            if [ -e "${HOST_HOME}/${file}" ] && [ ! -L "${HOST_HOME}/${file}" ]; then
+                echo "      Backing up existing host file ${file} to ${file}.bak..."
+                rm -rf "${HOST_HOME}/${file}.bak"
+                mv "${HOST_HOME}/${file}" "${HOST_HOME}/${file}.bak"
+            fi
+            ln -sf "${DOTFILES}/stow/cosmic/${file}" "${HOST_HOME}/${file}"
+        done
+    )
 fi
 
 
@@ -98,6 +90,42 @@ if [ ! -d "${FONT_DIR}/SauceCodePro" ]; then
     echo "SauceCodePro Nerd Font installed successfully!"
 else
     echo "SauceCodePro Nerd Font is already installed."
+fi
+
+echo "=== Phase 1.8: Installing Host Flatpak Applications ==="
+if command -v flatpak &>/dev/null; then
+    echo "Checking Flatpak remotes..."
+    # Ensure flathub remote is configured
+    flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    
+    # Check if cosmic remote exists, otherwise add it (COSMIC desktop apps repo)
+    flatpak remote-add --user --if-not-exists cosmic https://repository.cosmic.system76.com/flatpak/cosmic.flatpakrepo
+
+    # Applications to ensure are installed
+    HOST_APPS=(
+        "com.google.Chrome"
+        "us.zoom.Zoom"
+        "dev.edfloreshz.CosmicTweaks"
+        "com.github.bgub.CosmicExtAppletVigil"
+        "io.github.cosmic_utils.cosmic-ext-applet-clipboard-manager"
+        "org.gnome.Loupe"
+        "org.gnome.Papers"
+        "org.gnome.SimpleScan"
+    )
+
+    for app in "${HOST_APPS[@]}"; do
+        if ! flatpak list --columns=application | grep -q "^${app}$"; then
+            echo "Installing ${app}..."
+            # Try to install from configured remotes (prefer user scope)
+            flatpak install -y --user --noninteractive "${app}" || \
+            flatpak install -y --system --noninteractive "${app}" || \
+            echo "WARNING: Failed to install ${app}"
+        else
+            echo "      ${app} is already installed."
+        fi
+    done
+else
+    echo "      Flatpak is not installed on host. Skipping app installation."
 fi
 
 # Systemd Quadlet (host LLM background container service)
