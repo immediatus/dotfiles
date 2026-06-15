@@ -41,10 +41,11 @@ Run the installer script on the host to configure host symlinks, build the custo
 This will perform the following steps:
 1.  Setup host symlinks for Alacritty, custom scripts, models configuration, and the Llama Quadlet.
 2.  Install fonts and reload cache.
-3.  Build the custom `my-dev-box` image using Podman.
-4.  Create the isolated-home `dev-workspace` container.
-5.  Link and Stow configurations (git, zsh, starship, nvim, yazi, eza).
-6.  Dynamically clone Zsh plugins (`zsh-autosuggestions` and `zsh-syntax-highlighting`).
+3.  Install host-level Flatpak applications (Google Chrome, Zoom, COSMIC Tweaks, Vigil, Clipboard Manager, Loupe, Papers, and SimpleScan).
+4.  Build the custom `my-dev-box` image using Podman.
+5.  Create the isolated-home `dev-workspace` container.
+6.  Link and Stow configurations (git, zsh, starship, nvim, yazi, eza, and host COSMIC desktop settings configured with `--no-folding` to keep host-local configurations isolated).
+7.  Dynamically clone Zsh plugins (`zsh-autosuggestions` and `zsh-syntax-highlighting`).
 
 ---
 
@@ -60,6 +61,7 @@ This repository packages several specialized development configurations inside t
 *   **Eza (`stow/eza/`)**: Modern `ls` enhancement config highlighting folders, permissions, size layouts, and git metadata status directly in terminal directory lists.
 *   **Git (`stow/git/`)**: Standard global Git configurations, default pull merge properties, custom git log visual alias commands, and local settings exclusions.
 *   **NPM (`stow/npm/`)**: Node Package Manager configuration defaults.
+*   **COSMIC Desktop (`stow/cosmic/`)**: Declarative configuration for the COSMIC desktop environment (panel layouts, applets, compositor settings, and app themes) stowed with directory folding disabled so that host-specific dynamic files (such as local screenshot preferences) are kept local to the host home directory.
 
 ---
 
