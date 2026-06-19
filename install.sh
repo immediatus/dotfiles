@@ -96,10 +96,10 @@ echo "=== Phase 1.8: Installing Host Flatpak Applications ==="
 if command -v flatpak &>/dev/null; then
     echo "Checking Flatpak remotes..."
     # Ensure flathub remote is configured
-    flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     
     # Check if cosmic remote exists, otherwise add it (COSMIC desktop apps repo)
-    flatpak remote-add --user --if-not-exists cosmic https://repository.cosmic.system76.com/flatpak/cosmic.flatpakrepo
+    flatpak remote-add --user --if-not-exists cosmic https://repository.cosmic.system76.com/flatpak/cosmic.flatpakrepo || true
 
     # Applications to ensure are installed
     HOST_APPS=(

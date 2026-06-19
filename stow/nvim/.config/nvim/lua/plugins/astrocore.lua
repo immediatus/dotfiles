@@ -1,5 +1,3 @@
--- if true then return {} end -- WARN: REMOVE THIS LINE TO ACTIVATE THIS FILE
-
 -- AstroCore provides a central place to modify mappings, vim options, autocommands, and more!
 -- Configuration documentation can be found with `:h astrocore`
 -- NOTE: We highly recommend setting up the Lua Language Server (`:LspInstall lua_ls`)
@@ -12,7 +10,7 @@ return {
   opts = {
     -- Configure core features of AstroNvim
     features = {
-      large_buf = { size = 1024 * 512, lines = 20000, line_length = 2000 }, -- set global limits for large files for disabling features like treesitter
+      large_buf = { size = 1024 * 256, lines = 10000 }, -- set global limits for large files for disabling features like treesitter
       autopairs = true, -- enable autopairs at start
       cmp = true, -- enable completion at start
       diagnostics = { virtual_text = true, virtual_lines = false }, -- diagnostic settings on startup
@@ -57,8 +55,6 @@ return {
     mappings = {
       -- first key is the mode
       n = {
-        -- second key is the lefthand side of the map
-
         -- navigate buffer tabs
         ["]b"] = { function() require("astrocore.buffer").nav(vim.v.count1) end, desc = "Next buffer" },
         ["[b"] = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
@@ -73,15 +69,31 @@ return {
           desc = "Close buffer from tabline",
         },
 
-        ["<Leader>b"] = { desc = "Buffers" },
+        -- Scroll and keep cursor centered
+        ["<C-d>"] = { "<C-d>zz", desc = "Scroll down and center" },
+        ["<C-u>"] = { "<C-u>zz", desc = "Scroll up and center" },
+
+        -- Search and keep cursor centered
+        ["n"] = { "nzzzv", desc = "Next search match and center" },
+        ["N"] = { "Nzzzv", desc = "Previous search match and center" },
       },
       v = {
-         -- Indentation
-        ["<Tab>"] = { ">gv", desc = "Indent" },
-        ["<S-Tab>"] = { "<gv", desc = "Unindent" },
-        -- Instant Wrap: Types <leader>ss then 'kat' then 'Tab'
-        ["<leader>ss"] = { desc = "Instant Wrap" },
-        ["<leader>sk"] = { "<leader>sskat<Tab>", remap = true, desc = "Katex Wrap" },
+        -- Indentation (keep selection)
+        ["<Tab>"] = { ">gv", desc = "Indent selection" },
+        ["<S-Tab>"] = { "<gv", desc = "Unindent selection" },
+
+        -- Move lines up and down
+        ["J"] = { ":m '>+1<cr>gv=gv", desc = "Move lines down" },
+        ["K"] = { ":m '<-2<cr>gv=gv", desc = "Move lines up" },
+      },
+      x = {
+        -- Indentation (keep selection)
+        ["<Tab>"] = { ">gv", desc = "Indent selection" },
+        ["<S-Tab>"] = { "<gv", desc = "Unindent selection" },
+
+        -- Move lines up and down
+        ["J"] = { ":m '>+1<cr>gv=gv", desc = "Move lines down" },
+        ["K"] = { ":m '<-2<cr>gv=gv", desc = "Move lines up" },
       },
     },
   },
