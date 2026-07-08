@@ -6,6 +6,35 @@ set -e
 HOST_HOME="${HOME}"
 DOTFILES="${HOST_HOME}/.dotfiles"
 
+# Helper function for prompting y/n (defaulting to Yes if enter is pressed)
+prompt_yn() {
+    local prompt_text="$1"
+    local response
+    while true; do
+        read -p "${prompt_text} (Y/n): " response </dev/tty
+        # Default to Yes
+        if [[ -z "$response" || "$response" =~ ^[Yy]$ || "$response" =~ ^[Yy][Ee][Ss]$ ]]; then
+            return 0
+        elif [[ "$response" =~ ^[Nn]$ || "$response" =~ ^[Nn][Oo]$ ]]; then
+            return 1
+        fi
+    done
+}
+
+# Prompt for LLM configuration, helper functions, and daemon setup
+INSTALL_LLM=false
+INSTALL_LLM_DAEMON=false
+
+echo "=== Installation Configuration ==="
+if prompt_yn "Would you like to install the local LLM configuration and helper functions?"; then
+    INSTALL_LLM=true
+    if prompt_yn "Would you like to install and activate the background LLM daemon (Systemd Quadlet service)?"; then
+        INSTALL_LLM_DAEMON=true
+    fi
+fi
+echo "=================================="
+echo ""
+
 echo "=== Phase 1: Creating Host-Level Symlinks ==="
 mkdir -p "${HOST_HOME}/.config/alacritty"
 rm -f "${HOST_HOME}/.config/alacritty/alacritty.toml"
@@ -68,12 +97,14 @@ touch "${HOST_HOME}/.claude.json"
 mkdir -p "${HOST_HOME}/.gemini"
 chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" "${HOST_HOME}/.gemini" "${HOST_HOME}/.local/bin/agy" 2>/dev/null || true
 
-# Ensure host-level bin directory exists and symlink the llama script
-mkdir -p "${HOST_HOME}/.local/bin"
-ln -sf "${DOTFILES}/stow/zsh/.local/bin/llama" "${HOST_HOME}/.local/bin/llama"
+# Ensure host-level bin directory exists and symlink the llama script and models.json if requested
+if [ "$INSTALL_LLM" = "true" ]; then
+    mkdir -p "${HOST_HOME}/.local/bin"
+    ln -sf "${DOTFILES}/stow/llama/.local/bin/llama" "${HOST_HOME}/.local/bin/llama"
 
-# Symlink host-level models.json configuration
-ln -sf "${DOTFILES}/models/models.json" "${HOST_HOME}/models/models.json"
+    # Symlink host-level models.json configuration
+    ln -sf "${DOTFILES}/models/models.json" "${HOST_HOME}/models/models.json"
+fi
 
 echo "=== Phase 1.5: Installing Fonts on Host ==="
 FONT_DIR="${HOST_HOME}/.local/share/fonts"
@@ -129,19 +160,20 @@ else
 fi
 
 # Systemd Quadlet (host LLM background container service)
-mkdir -p "${HOST_HOME}/.config/containers/systemd"
-ln -sf "${DOTFILES}/quadlets/llama-rocm.container" "${HOST_HOME}/.config/containers/systemd/llama-rocm.container"
+if [ "$INSTALL_LLM_DAEMON" = "true" ]; then
+    mkdir -p "${HOST_HOME}/.config/containers/systemd"
+    ln -sf "${DOTFILES}/quadlets/llama-rocm.container" "${HOST_HOME}/.config/containers/systemd/llama-rocm.container"
 
-echo "=== Phase 2: Activating Llama-ROCm Service via Quadlet ==="
-# NOTE: Quadlet-generated units cannot be 'enabled' via systemctl — they are
-# automatically enabled through WantedBy=default.target in the .container file.
-# daemon-reload triggers the Quadlet generator which creates the unit.
-systemctl --user daemon-reload
+    echo "=== Phase 2: Activating Llama-ROCm Service via Quadlet ==="
+    # NOTE: Quadlet-generated units cannot be 'enabled' via systemctl — they are
+    # automatically enabled through WantedBy=default.target in the .container file.
+    # daemon-reload triggers the Quadlet generator which creates the unit.
+    systemctl --user daemon-reload
 
-# Sync active model env file with the latest definitions in models.json
-ACTIVE_PROFILE="expert"
-if [[ -f "${HOST_HOME}/models/.active_model" ]]; then
-  ACTIVE_PROFILE=$(python3 -c "
+    # Sync active model env file with the latest definitions in models.json
+    ACTIVE_PROFILE="expert"
+    if [[ -f "${HOST_HOME}/models/.active_model" ]]; then
+      ACTIVE_PROFILE=$(python3 -c "
 import json
 try:
     models = json.load(open('${HOST_HOME}/models/models.json'))
@@ -151,11 +183,14 @@ try:
 except Exception:
     print('expert')
 " 2>/dev/null || echo "expert")
-fi
-echo "      Syncing active model profile (${ACTIVE_PROFILE}) with models.json..."
-bash "${DOTFILES}/stow/zsh/.local/bin/llama" switch "${ACTIVE_PROFILE}" || true
+    fi
+    echo "      Syncing active model profile (${ACTIVE_PROFILE}) with models.json..."
+    bash "${DOTFILES}/stow/zsh/.local/bin/llama" switch "${ACTIVE_PROFILE}" || true
 
-systemctl --user restart llama-rocm.service || true
+    systemctl --user restart llama-rocm.service || true
+else
+    echo "=== Phase 2: Skipping Llama-ROCm Service Activation ==="
+fi
 
 echo "=== Phase 3: Building Custom Distrobox Workspace Image ==="
 podman build -t my-dev-box -f "${DOTFILES}/distrobox/Containerfile" "${DOTFILES}/distrobox"
@@ -218,7 +253,11 @@ if [ ! -f "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-
 fi
 
 # Run GNU Stow inside the container to symlink dev configurations
-distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" alacritty zsh starship nvim yazi git eza npm
+STOW_PACKAGES=(alacritty zsh starship nvim yazi git eza npm)
+if [ "$INSTALL_LLM" = "true" ]; then
+    STOW_PACKAGES+=(llama)
+fi
+distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" "${STOW_PACKAGES[@]}"
 
 # Symlink bun and bunx inside container .local/bin for MCP servers compatibility
 distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bun" "/home/${USER}/.local/share/dev-workspace/.local/bin/bun"
