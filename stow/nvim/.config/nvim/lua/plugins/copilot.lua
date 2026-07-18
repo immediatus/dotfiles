@@ -1,9 +1,14 @@
 return {
   {
-    "zbirenbaum/copilot.lua",
-    opts = function(_, opts)
-      -- 1. Enable Markdown explicitly
-      opts.filetypes = {
+    "github/copilot.vim",
+    cmd = "Copilot",
+    event = "User AstroFile",
+    config = function()
+      -- Disable default tab mapping to avoid conflicts with autocomplete engines
+      vim.g.copilot_no_tab_map = true
+
+      -- Configure filetypes
+      vim.g.copilot_filetypes = {
         markdown = true,
         yaml = true,
         help = false,
@@ -11,18 +16,14 @@ return {
         ["."] = false,
       }
 
-      opts.suggestion = {
-        enabled = true,
-        auto_trigger = true,
-        keymap = {
-          accept = false, -- Handled by AstroNvim ai_accept bridge
-        },
-      }
-
-      -- 3. Existing AstroNvim bridge
+      -- AstroNvim bridge to accept suggestion
       vim.g.ai_accept = function()
-        if require("copilot.suggestion").is_visible() then
-          require("copilot.suggestion").accept()
+        local suggestion = vim.fn["copilot#GetDisplayedSuggestion"]()
+        if (type(suggestion) == "table" and suggestion.text and suggestion.text ~= "")
+           or (type(suggestion) == "string" and suggestion ~= "") then
+          -- Feed keys to accept suggestion
+          local accept = vim.fn["copilot#Accept"]("")
+          vim.api.nvim_feedkeys(accept, "i", true)
           return true
         end
       end

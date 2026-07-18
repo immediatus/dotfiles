@@ -21,15 +21,15 @@ prompt_yn() {
     done
 }
 
-# Prompt for LLM configuration, helper functions, and daemon setup
-INSTALL_LLM=false
-INSTALL_LLM_DAEMON=false
+# Prompt for Lemonade AI server and CLI setup
+INSTALL_LEMONADE=false
+INSTALL_LEMONADE_DAEMON=false
 
 echo "=== Installation Configuration ==="
-if prompt_yn "Would you like to install the local LLM configuration and helper functions?"; then
-    INSTALL_LLM=true
-    if prompt_yn "Would you like to install and activate the background LLM daemon (Systemd Quadlet service)?"; then
-        INSTALL_LLM_DAEMON=true
+if prompt_yn "Would you like to install the local Lemonade AI configuration and CLI?"; then
+    INSTALL_LEMONADE=true
+    if prompt_yn "Would you like to install and activate the background Lemonade AI daemon (Systemd Quadlet service)?"; then
+        INSTALL_LEMONADE_DAEMON=true
     fi
 fi
 echo "=================================="
@@ -78,9 +78,7 @@ else
 fi
 
 
-# Ensure host-level models directory exists
-echo "      Ensuring host models directory exists..."
-mkdir -p "${HOST_HOME}/models"
+
 
 # Ensure host-level code trash directories exist to support trash-cli/yazi across container volume boundaries
 mkdir -p "${HOST_HOME}/code/.Trash-1000/files"
@@ -97,13 +95,10 @@ touch "${HOST_HOME}/.claude.json"
 mkdir -p "${HOST_HOME}/.gemini"
 chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" "${HOST_HOME}/.gemini" "${HOST_HOME}/.local/bin/agy" 2>/dev/null || true
 
-# Ensure host-level bin directory exists and symlink the llama script and models.json if requested
-if [ "$INSTALL_LLM" = "true" ]; then
+# Ensure host-level bin directory exists and symlink the lemonade CLI if requested
+if [ "$INSTALL_LEMONADE" = "true" ]; then
     mkdir -p "${HOST_HOME}/.local/bin"
-    ln -sf "${DOTFILES}/stow/llama/.local/bin/llama" "${HOST_HOME}/.local/bin/llama"
-
-    # Symlink host-level models.json configuration
-    ln -sf "${DOTFILES}/models/models.json" "${HOST_HOME}/models/models.json"
+    ln -sf "${DOTFILES}/stow/lemonade/.local/bin/lemonade" "${HOST_HOME}/.local/bin/lemonade"
 fi
 
 echo "=== Phase 1.5: Installing Fonts on Host ==="
@@ -159,37 +154,20 @@ else
     echo "      Flatpak is not installed on host. Skipping app installation."
 fi
 
-# Systemd Quadlet (host LLM background container service)
-if [ "$INSTALL_LLM_DAEMON" = "true" ]; then
+# Systemd Quadlet (host Lemonade background container service)
+if [ "$INSTALL_LEMONADE_DAEMON" = "true" ]; then
     mkdir -p "${HOST_HOME}/.config/containers/systemd"
-    ln -sf "${DOTFILES}/quadlets/llama-rocm.container" "${HOST_HOME}/.config/containers/systemd/llama-rocm.container"
+    ln -sf "${DOTFILES}/quadlets/lemonade.container" "${HOST_HOME}/.config/containers/systemd/lemonade.container"
 
-    echo "=== Phase 2: Activating Llama-ROCm Service via Quadlet ==="
+    echo "=== Phase 2: Activating Lemonade Service via Quadlet ==="
     # NOTE: Quadlet-generated units cannot be 'enabled' via systemctl — they are
     # automatically enabled through WantedBy=default.target in the .container file.
     # daemon-reload triggers the Quadlet generator which creates the unit.
     systemctl --user daemon-reload
 
-    # Sync active model env file with the latest definitions in models.json
-    ACTIVE_PROFILE="expert"
-    if [[ -f "${HOST_HOME}/models/.active_model" ]]; then
-      ACTIVE_PROFILE=$(python3 -c "
-import json
-try:
-    models = json.load(open('${HOST_HOME}/models/models.json'))
-    active = open('${HOST_HOME}/models/.active_model').read().strip()
-    profile = next((k for k, v in models.items() if v.get('file') == active), 'expert')
-    print(profile)
-except Exception:
-    print('expert')
-" 2>/dev/null || echo "expert")
-    fi
-    echo "      Syncing active model profile (${ACTIVE_PROFILE}) with models.json..."
-    bash "${DOTFILES}/stow/zsh/.local/bin/llama" switch "${ACTIVE_PROFILE}" || true
-
-    systemctl --user restart llama-rocm.service || true
+    systemctl --user restart lemonade.service || true
 else
-    echo "=== Phase 2: Skipping Llama-ROCm Service Activation ==="
+    echo "=== Phase 2: Skipping Lemonade Service Activation ==="
 fi
 
 echo "=== Phase 3: Building Custom Distrobox Workspace Image ==="
@@ -204,21 +182,21 @@ distrobox rm -f dev-station 2>/dev/null || true
 distrobox create --name dev-workspace --image my-dev-box \
     --home "${HOST_HOME}/.local/share/dev-workspace" \
     --volume "${HOST_HOME}/code:/home/${USER}/code" \
-    --volume "${HOST_HOME}/models:/home/${USER}/models" \
+    --volume "${HOST_HOME}/.cache/huggingface:/home/${USER}/.cache/huggingface" \
     --volume "${HOST_HOME}/.claude:/home/${USER}/.claude" \
     --volume "${HOST_HOME}/Sync:/home/${USER}/Sync" \
     -Y
 
 echo "=== Phase 5: Initializing GNU Stow inside Container ==="
 # Clean up existing files in container home to prevent Stow/symlink conflicts
-distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local ~/.local/bin/llama ~/.local/bin/docker ~/.local/bin/podman ~/.local/bin/xagy ~/.local/bin/xclaude'
+distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local ~/.local/bin/llama ~/.local/bin/lemonade ~/.local/bin/docker ~/.local/bin/podman ~/.local/bin/xagy ~/.local/bin/xclaude'
 
 # Symlink host's .dotfiles folder inside the container home so Stow can find it
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.dotfiles" "/home/${USER}/.local/share/dev-workspace/.dotfiles"
 
 # Symlink direct volume mount paths inside the container home for path alignment
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/code" "/home/${USER}/.local/share/dev-workspace/code"
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/models" "/home/${USER}/.local/share/dev-workspace/models"
+
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.claude" "/home/${USER}/.local/share/dev-workspace/.claude"
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync" "/home/${USER}/.local/share/dev-workspace/Sync"
 # Symlink host .gemini so agy conversations are accessible inside container
@@ -254,8 +232,8 @@ fi
 
 # Run GNU Stow inside the container to symlink dev configurations
 STOW_PACKAGES=(alacritty zsh starship nvim yazi git eza npm)
-if [ "$INSTALL_LLM" = "true" ]; then
-    STOW_PACKAGES+=(llama)
+if [ "$INSTALL_LEMONADE" = "true" ]; then
+    STOW_PACKAGES+=(lemonade)
 fi
 distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" "${STOW_PACKAGES[@]}"
 
@@ -264,23 +242,6 @@ distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bun" "/home/${USER}/.lo
 distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bunx" "/home/${USER}/.local/share/dev-workspace/.local/bin/bunx"
 # Symlink agy inside container .local/bin for developer use
 distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.local/bin/agy" "/home/${USER}/.local/share/dev-workspace/.local/bin/agy"
-
-# Ensure Claude symlink inside container .local/bin is valid and points to the latest local version (or globally installed fallback)
-distrobox enter dev-workspace -- sh -c '
-  CLAUDE_BIN_DIR="$HOME/.local/bin"
-  CLAUDE_VERSIONS_DIR="$HOME/.local/share/claude/versions"
-  mkdir -p "$CLAUDE_BIN_DIR"
-  if [ -d "$CLAUDE_VERSIONS_DIR" ] && [ "$(ls -A "$CLAUDE_VERSIONS_DIR" 2>/dev/null)" ]; then
-    LATEST_CLAUDE=$(ls -vd "$CLAUDE_VERSIONS_DIR"/* 2>/dev/null | tail -n 1)
-    if [ -x "$LATEST_CLAUDE" ]; then
-      ln -sfn "$LATEST_CLAUDE" "$CLAUDE_BIN_DIR/claude"
-      echo "      Synced Claude symlink to latest version: $LATEST_CLAUDE"
-    fi
-  else
-    ln -sfn "/usr/local/bin/claude" "$CLAUDE_BIN_DIR/claude"
-    echo "      Synced Claude symlink to global fallback: /usr/local/bin/claude"
-  fi
-'
 
 
 # Change default container shell to Zsh

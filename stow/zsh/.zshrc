@@ -263,7 +263,7 @@ if [ -f "$HOME/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
     source "$HOME/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 fi
 
-# Source extra Zsh Extensions (zola.zsh, llama.zsh, etc.)
+# Source extra Zsh Extensions (zola.zsh, lemonade.zsh, etc.)
 for ext in "$HOME"/.zsh/*.zsh; do
     [ -f "$ext" ] && source "$ext"
 done

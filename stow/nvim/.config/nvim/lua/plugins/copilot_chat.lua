@@ -61,42 +61,18 @@ return {
 
         prompts = {},
 
-        model = "q3",
-        provider = "llama_local",
+        model = "qwen3.5-122b-local",
+        provider = "lemonade_local",
         providers = {
           copilot = { enabled = false },
           github_models = { enabled = false },
-          llama_local = {
-            get_url = function(_) return "127.0.0.1:8080/completion" end,
+          lemonade_local = {
+            get_url = function() return "http://127.0.0.1:13305/v1/chat/completions" end,
             get_headers = function() return { ["Content-Type"] = "application/json" } end,
-            get_models = function() return { { id = "q3", name = "Qwen3" } } end,
-            prepare_input = function(messages, _)
-              local prompt = ""
-              for _, msg in ipairs(messages) do
-                local role = msg.role == "user" and "User: " or "Assistant: "
-                prompt = prompt .. role .. msg.content .. "\n"
-              end
-              prompt = prompt .. "Assistant: "
+            get_models = function()
               return {
-                prompt = prompt,
-                temperature = 0.7,
-                n_predict = 4096,
-                repeat_penalty = 1.1,
-                stop = { "User:", "Assistant:" },
-                stream = false,
+                { id = "qwen3.5-122b-local", name = "Qwen3.5 122B (Local)" }
               }
-            end,
-
-            prepare_output = function(data)
-              local text = ""
-              if type(data) == "table" and data.content then
-                text = data.content
-              elseif type(data) == "string" then
-                local ok, decoded = pcall(vim.json.decode, data)
-                if ok and decoded.content then text = decoded.content end
-              end
-              text = text:gsub("^%s*(.-)%s*$", "%1")
-              return { content = text }
             end,
           },
         },

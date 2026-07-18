@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Dynamic runner for Claude Code inside dev containers
+VERSIONS_DIR="$HOME/.local/share/claude/versions"
+LATEST_CLAUDE=""
+
+if [ -d "$VERSIONS_DIR" ]; then
+    # Read files sorted by version number
+    files=( $(ls -vd "$VERSIONS_DIR"/* 2>/dev/null) )
+    # Loop from newest to oldest to find the latest executable version
+    for (( i=${#files[@]}-1; i>=0; i-- )); do
+        f="${files[$i]}"
+        if [ -x "$f" ] && [ -f "$f" ]; then
+            LATEST_CLAUDE="$f"
+            break
+        fi
+    done
+fi
+
+if [ -n "$LATEST_CLAUDE" ]; then
+    exec "$LATEST_CLAUDE" "$@"
+fi
+
+# Fallback to global npm command if versions dir is empty
+if command -v /usr/local/bin/claude &>/dev/null && [ ! "$0" -ef /usr/local/bin/claude ]; then
+    exec /usr/local/bin/claude "$@"
+fi
+
+echo "Error: Claude version folder or binary not found in container." >&2
+exit 1

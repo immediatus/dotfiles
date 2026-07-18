@@ -1,0 +1,27 @@
+# ~/.dotfiles/quadlets/lemonade.container
+[Container]
+Image=ghcr.io/lemonade-sdk/lemonade-server:latest
+ContainerName=lemonade-server
+
+# Pass AMD GPU devices for ROCm acceleration
+AddDevice=/dev/kfd
+AddDevice=/dev/dri
+
+# Add capabilities and arguments for ROCm virtual memory allocations
+AddCapability=SYS_PTRACE
+PodmanArgs=--ipc=host
+
+# Mount cache directories
+Volume=%h/.cache/huggingface:/opt/lemonade/.cache/huggingface:z
+Volume=%h/.cache/lemonade:/opt/lemonade/.cache/lemonade:z
+
+PublishPort=13305:13305
+
+Environment=HSA_OVERRIDE_GFX_VERSION=11.5.1
+Environment=MIOPEN_FIND_MODE=2
+Environment=HSA_ENABLE_SDMA=0
+Environment=HSA_XNACK=1
+Environment=HSA_FORCE_FINE_GRAIN_PCIE=1
+
+[Install]
+WantedBy=default.target

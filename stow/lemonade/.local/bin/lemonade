@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Wrapper to execute the lemonade CLI inside the background container
+
+CONTAINER_NAME="lemonade-server"
+
+# Check if the container is running
+if ! podman ps --filter "name=^/${CONTAINER_NAME}$" --filter "status=running" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    echo "Error: Lemonade server container ($CONTAINER_NAME) is not running." >&2
+    echo "Start it with: systemctl --user start lemonade" >&2
+    exit 1
+fi
+
+# Run the command inside the container
+if [ -t 1 ]; then
+    exec podman exec -it "$CONTAINER_NAME" lemonade "$@"
+else
+    exec podman exec -i "$CONTAINER_NAME" lemonade "$@"
+fi
