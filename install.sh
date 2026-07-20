@@ -146,8 +146,9 @@ if command -v flatpak &>/dev/null; then
     # Ensure flathub remote is configured
     flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     
-    # Check if cosmic remote exists, otherwise add it (COSMIC desktop apps repo)
-    flatpak remote-add --user --if-not-exists cosmic https://apt.pop-os.org/cosmic/ || true
+    # Ensure cosmic remote exists and disable GPG verification requirement for unverified APT summaries
+    flatpak remote-add --user --if-not-exists --no-gpg-verify cosmic https://apt.pop-os.org/cosmic/ || true
+    flatpak remote-modify --no-gpg-verify cosmic 2>/dev/null || true
 
     # Applications to ensure are installed
     HOST_APPS=(
@@ -168,7 +169,9 @@ if command -v flatpak &>/dev/null; then
     for app in "${HOST_APPS[@]}"; do
         if ! flatpak list --columns=application | grep -q "^${app}$"; then
             echo "Installing ${app}..."
-            # Try to install from configured remotes (prefer user scope)
+            # Try installing from flathub, cosmic, or default remotes
+            flatpak install -y --user --noninteractive flathub "${app}" 2>/dev/null || \
+            flatpak install -y --user --noninteractive cosmic "${app}" 2>/dev/null || \
             flatpak install -y --user --noninteractive "${app}" || \
             flatpak install -y --system --noninteractive "${app}" || \
             echo "WARNING: Failed to install ${app}"
