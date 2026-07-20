@@ -1,103 +1,136 @@
 # Dotfiles & Development Environment Setup
 
-This repository contains declarative configurations for a reproducible, containerized developer workstation optimized for **AMD Strix Halo (gfx1151)** and Fedora-based hosts.
+This repository contains declarative configurations for a reproducible, containerized developer workstation optimized for Fedora-based hosts (including Fedora COSMIC Atomic / Silverblue) and AMD hardware.
 
 ---
 
-## 1. Host Prerequisites & ROCm Optimization
+## 1. Quick Start for New Laptop / System Setup
 
-Unified memory APUs like Strix Halo share RAM between the CPU and GPU. To run large LLM models (e.g., 122B Qwen) stably under ROCm without running out of memory (OOM), you must configure your BIOS and host kernel parameters.
+Setting up a new laptop or workstation with this repository takes only a few minutes. 
+
+### Step 1: Download & Bootstrap (No Git Required)
+
+On a fresh Fedora Atomic installation where `git` is not yet installed, download the repository using `curl` (built into Fedora by default) or use `podman`:
+
+#### Option A: Direct Download via `curl` (Recommended - No reboot required)
+```bash
+curl -sSL https://github.com/your-username/.dotfiles/archive/refs/heads/main.tar.gz | tar -xz && mv .dotfiles-main ~/.dotfiles
+cd ~/.dotfiles
+```
+
+#### Option B: Clone using `podman` (Built into Fedora Atomic out-of-the-box)
+```bash
+podman run --rm -v $HOME:$HOME -w $HOME alpine sh -c "apk add --no-cache git && git clone https://github.com/your-username/.dotfiles.git ~/.dotfiles"
+cd ~/.dotfiles
+```
+
+#### Option C: Layer `git` on Host (Requires Reboot)
+```bash
+sudo rpm-ostree install git && systemctl reboot
+# After reboot:
+git clone https://github.com/your-username/.dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
+```
+
+### Step 2: Run the Interactive Installer
+```bash
+./install.sh
+```
+
+During installation, the script will prompt you:
+* **System Update Prompt:** `Would you like to check for and apply host OS (rpm-ostree) and Flatpak updates?`
+  * Automatically pulls the latest Fedora Atomic system image and updates all installed Flatpaks.
+* **Lemonade AI Prompt:** `Would you like to install the local Lemonade AI configuration and CLI? (Y/n)`
+  * **On Laptops without local LLM needs:** Answer `n` (No). The installer will skip Lemonade Quadlet daemon activation and CLI stowing, keeping your setup lightweight.
+  * **On APUs / Workstations with ROCm:** Answer `y` (Yes) to install Lemonade and the background daemon.
+
+### Recommended Post-Install / Maintenance Commands (Fedora Atomic & Flatpak)
+
+On Fedora Atomic / Silverblue / COSMIC Atomic, use these standard commands to keep your host OS and Flatpak applications up to date:
+
+```bash
+# 1. Update host OS deployment via rpm-ostree
+rpm-ostree upgrade
+
+# 2. Update all installed Flatpaks (Brave, Chrome, Zoom, COSMIC apps)
+flatpak update -y
+
+# 3. Reboot host if a new rpm-ostree deployment was staged
+systemctl reboot
+```
+
+### What `./install.sh` Automatically Configures:
+1. **COSMIC Desktop Environment (`stow/cosmic/`)**:
+   * Stows COSMIC desktop configuration (`--no-folding`) to set up panel layouts, applets, shortcuts, wallpapers (`mountain-valley`), keybindings, and autotile settings on the host.
+2. **Alacritty Terminal (`stow/alacritty/`)**:
+   * Configures GPU-accelerated Alacritty as the default terminal on the host, styled with the `synthwave_84` theme and SauceCodePro Nerd Font, configured to launch directly into the `dev-workspace` container.
+3. **Host Flatpak Applications**:
+   * Ensures essential applications are installed: **Brave Browser** (`com.brave.Browser`), **Google Chrome**, **Zoom**, **COSMIC Tweaks**, **Vigil Applet**, **Clipboard Manager**, **Loupe**, **Papers**, and **SimpleScan**.
+4. **SauceCodePro Nerd Font**:
+   * Automatically unzips and registers `SauceCodePro` Nerd Font into `~/.local/share/fonts/` and updates the host font cache.
+5. **Containerized Development Workspace (`my-dev-box` & `dev-workspace`)**:
+   * Builds the custom container image using Podman and Distrobox.
+   * Creates an isolated-home `dev-workspace` container mapped with volume access to `~/code`, `~/.claude`, `~/Sync`, and `~/.ssh`.
+6. **Development Tool Configurations (stowed inside container)**:
+   * **Zsh & Plugins**: Oh-My-Zsh setup with `zsh-autosuggestions` and `zsh-syntax-highlighting`.
+   * **Starship Prompt**: Cross-shell prompt (`starship.toml`).
+   * **Neovim**: Optimized Lua workspace with LSP, Treesitter, and lightweight `github/copilot.vim` integration.
+   * **Yazi & Eza**: Terminal file manager with previews, trash integration, and modern `ls`.
+   * **Git & NPM**: Global git configs and npm settings.
+
+---
+
+## 2. Host Prerequisites & ROCm Optimization (Optional - for ROCm APUs)
+
+If you are running on an **AMD Strix Halo (gfx1151)** or similar unified-memory APU and wish to run 100B+ local LLMs via Lemonade:
 
 ### A. BIOS UMA Settings (Choose one)
-*   **Option A (Dynamic - Recommended):** Set the **UMA Frame Buffer Size to "Auto"** or a low value (like 2GB) in your BIOS. This allocates most memory to the CPU system pool, and we will let the GPU driver dynamically map it.
-*   **Option B (Static):** Set the **UMA Frame Buffer Size to 96GB or 112GB** statically in the BIOS.
+* **Option A (Dynamic - Recommended):** Set **UMA Frame Buffer Size to "Auto"** or a low value (2GB) in BIOS.
+* **Option B (Static):** Set **UMA Frame Buffer Size to 96GB or 112GB** statically in BIOS.
 
 ### B. Host Kernel Boot Parameters (For Fedora Atomic / Silverblue)
-If using **Option A (Dynamic)**, you must increase the host GPU driver's GTT (Graphics Translation Table) mapping limit to allow `cudaMalloc` allocations to scale up to 85% of your system RAM (~108 GB on a 128GB system). 
-
-Run this command on your host system:
+For Option A (Dynamic), increase GTT mapping limit for `cudaMalloc`:
 ```bash
 sudo rpm-ostree kargs \
   --append="ttm.pages_limit=28311552" \
   --append="ttm.page_pool_size=28311552"
 ```
-*After executing, reboot your host computer.*
+*Reboot the host system after applying.*
 
-### C. Enable Systemd User Linger
-Enable systemd to run services for your user account even when you are not logged in. This keeps the background Lemonade server active:
+### C. Systemd User Linger
+Keep background user services active when logged out:
 ```bash
 loginctl enable-linger $USER
 ```
 
 ---
 
-## 2. Bootstrapping the Environment
+## 3. Configuration Packages Overview
 
-Run the installer script on the host to configure host symlinks, build the custom Distrobox development container, and initialize GNU Stow:
-```bash
-./install.sh
-```
+All package configurations are organized declaratively under `stow/`:
 
-This will perform the following steps:
-1.  Setup host symlinks for Alacritty, custom scripts, and the Lemonade Quadlet.
-2.  Install fonts and reload cache.
-3.  Install host-level Flatpak applications (Google Chrome, Zoom, COSMIC Tweaks, Vigil, Clipboard Manager, Loupe, Papers, and SimpleScan).
-4.  Build the custom `my-dev-box` image using Podman.
-5.  Create the isolated-home `dev-workspace` container.
-6.  Link and Stow configurations (git, zsh, starship, nvim, yazi, eza, and host COSMIC desktop settings configured with `--no-folding` to keep host-local configurations isolated).
-7.  Dynamically clone Zsh plugins (`zsh-autosuggestions` and `zsh-syntax-highlighting`).
-
----
-
-## 3. Configuration Packages & Development Stack
-
-This repository packages several specialized development configurations inside the `stow/` directory. When the bootstrapping script runs, GNU Stow symlinks these folders directly into the isolated distrobox home directory:
-
-*   **Alacritty (`stow/alacritty/`)**: GPU-accelerated terminal emulator configured with Nerdfont integration, standard developer layouts, and custom theme presets.
-*   **Neovim (`stow/nvim/`)**: A highly optimized terminal editor workspace setup with customized search, treesitter syntax parser settings, and language server presets.
-*   **Starship (`stow/starship/`)**: A cross-shell prompt that dynamically displays git branch names, command durations, active container states, and local runtime engine versions.
-*   **Zsh & plugins (`stow/zsh/`)**: The main user shell configured with custom aliases, auto-completion engines, syntax highlighting plugins, and functions (such as `lemonade`).
-*   **Yazi (`stow/yazi/`)**: Blazing-fast terminal file manager configured with image previews, keybindings, trash integration, and shell navigation aliases.
-*   **Eza (`stow/eza/`)**: Modern `ls` enhancement config highlighting folders, permissions, size layouts, and git metadata status directly in terminal directory lists.
-*   **Git (`stow/git/`)**: Standard global Git configurations, default pull merge properties, custom git log visual alias commands, and local settings exclusions.
-*   **NPM (`stow/npm/`)**: Node Package Manager configuration defaults.
-*   **COSMIC Desktop (`stow/cosmic/`)**: Declarative configuration for the COSMIC desktop environment (panel layouts, applets, compositor settings, and app themes) stowed with directory folding disabled so that host-specific dynamic files (such as local screenshot preferences) are kept local to the host home directory.
+| Package | Target | Description |
+| :--- | :--- | :--- |
+| `alacritty` | Host & Container | Terminal emulator setup, themes (`synthwave_84`), font settings, and auto-entry into `dev-workspace`. |
+| `cosmic` | Host | COSMIC desktop settings: panel applets, keybindings, autotile, window behavior, and custom wallpaper. |
+| `zsh` | Container | Main Zsh shell, Oh-My-Zsh plugins, aliases, and container helper tools (`xclaude`, `xagy`). |
+| `starship` | Container | Custom cross-shell prompt style. |
+| `nvim` | Container | Neovim IDE setup with LSP, treesitter, and `github/copilot.vim`. |
+| `yazi` | Container | Fast terminal file manager with image previews and trash integration. |
+| `eza` | Container | Modern replacement for `ls` with git status and file icons. |
+| `git` | Container | Global git configuration, aliases, and ignores. |
+| `npm` | Container | Global npm config. |
+| `lemonade` | Host & Container | *(Optional)* Lemonade AI CLI wrapper and Zsh completion. |
 
 ---
 
-## 4. Model Storage, Configurations & Local Models
+## 4. Local Model Storage & Lemonade Server (Optional)
 
-This repository utilizes **Lemonade AI Server (v11)** to run local LLMs. You do not need to download models manually or maintain complex JSON configuration profiles.
-
-### Why is this structured this way?
-1. **No Manual Downloads Necessary:** Lemonade supports pulling models directly from Hugging Face via the CLI (e.g. `lemonade pull <model>`), managing downloads and caching automatically.
-2. **Hugging Face Cache Integration:** Models are stored in the default Hugging Face cache folder on the host (`~/.cache/huggingface`). This directory is shared with the background Lemonade server and distrobox containers, avoiding duplicate storage.
-3. **No Switcher Scripts Needed:** Lemonade hosts models dynamically. You can load, unload, and query models on the fly via the CLI, the OpenAI-compatible API, or the Web UI.
-
-### How to Use Local Models
-If you have local GGUF models that you want Lemonade to recognize without re-downloading:
-1. **Place in Cache:** Move or copy your GGUF files to the Hugging Face cache snapshots folder (e.g. `~/.cache/huggingface/hub/models--bartowski--Qwen_Qwen3.5-122B-A10B-GGUF/snapshots/<commit_hash>/Qwen_Qwen3.5-122B-A10B-Q4_K_M/`).
-2. **Register the Model:** Run the pull command to register it in Lemonade's database. It will verify the files and complete instantly:
-   ```bash
-   lemonade pull user.qwen3.5-122b-local --checkpoint main bartowski/Qwen_Qwen3.5-122B-A10B-GGUF:Qwen_Qwen3.5-122B-A10B-Q4_K_M --recipe llamacpp
-   ```
-3. **Load the Model:**
-   ```bash
-   lemonade load qwen3.5-122b-local
-   ```
-
----
-
-## 5. Lemonade Service & CLI Management
-
-The LLM server runs in the background as a host-level systemd user service (`lemonade.service`) generated via a Podman Quadlet, exposing an OpenAI-compatible API on port `13305`.
-
-*   **API Endpoint:** `http://localhost:13305/v1` (inside containers: `http://host.docker.internal:13305/v1`)
-*   **Web UI:** Open your browser and navigate to `http://localhost:13305` or run `lemonade run <model>` to launch a browser chat interface.
-*   **Control Commands:**
-    *   List models: `lemonade list`
-    *   Load model into GPU: `lemonade load <model-id>`
-    *   Start terminal chat: `lemonade chat <model-id>`
-    *   Unload model (free GPU memory): `lemonade unload`
-    *   Check server status: `lemonade status`
-    *   Pull new model: `lemonade pull <owner/repo:variant>`
+If Lemonade AI is installed (`INSTALL_LEMONADE=true`):
+* **Daemon Endpoint:** `http://localhost:13305/v1` (inside container: `http://host.docker.internal:13305/v1`)
+* **Hugging Face Cache:** Models are cached in host `~/.cache/huggingface` and shared across container and host.
+* **Commands:**
+  * List models: `lemonade list`
+  * Load model: `lemonade load <model-id>`
+  * Unload model: `lemonade unload`
+  * Status: `lemonade status`

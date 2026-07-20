@@ -21,11 +21,12 @@ prompt_yn() {
     done
 }
 
-# Prompt for Lemonade AI server and CLI setup
-INSTALL_LEMONADE=false
-INSTALL_LEMONADE_DAEMON=false
+UPDATE_SYSTEM=false
 
 echo "=== Installation Configuration ==="
+if prompt_yn "Would you like to check for and apply host OS (rpm-ostree) and Flatpak updates?"; then
+    UPDATE_SYSTEM=true
+fi
 if prompt_yn "Would you like to install the local Lemonade AI configuration and CLI?"; then
     INSTALL_LEMONADE=true
     if prompt_yn "Would you like to install and activate the background Lemonade AI daemon (Systemd Quadlet service)?"; then
@@ -34,6 +35,18 @@ if prompt_yn "Would you like to install the local Lemonade AI configuration and 
 fi
 echo "=================================="
 echo ""
+
+if [ "$UPDATE_SYSTEM" = "true" ]; then
+    echo "=== Phase 0: Updating Host System & Flatpaks ==="
+    if command -v rpm-ostree &>/dev/null; then
+        echo "Checking for host OS updates (rpm-ostree upgrade)..."
+        rpm-ostree upgrade || echo "Notice: rpm-ostree upgrade completed or requires reboot."
+    fi
+    if command -v flatpak &>/dev/null; then
+        echo "Updating Flatpak applications..."
+        flatpak update -y --noninteractive || true
+    fi
+fi
 
 echo "=== Phase 1: Creating Host-Level Symlinks ==="
 mkdir -p "${HOST_HOME}/.config/alacritty"
@@ -80,9 +93,11 @@ fi
 
 
 
-# Ensure host-level code trash directories exist to support trash-cli/yazi across container volume boundaries
+# Ensure host-level code, Sync, and cache directories exist for container mounts
 mkdir -p "${HOST_HOME}/code/.Trash-1000/files"
 mkdir -p "${HOST_HOME}/code/.Trash-1000/info"
+mkdir -p "${HOST_HOME}/Sync/config"
+mkdir -p "${HOST_HOME}/.cache/huggingface"
 chmod 700 "${HOST_HOME}/code/.Trash-1000" "${HOST_HOME}/code/.Trash-1000/files" "${HOST_HOME}/code/.Trash-1000/info"
 
 # Ensure host-level .ssh directory exists with correct permissions
@@ -129,6 +144,7 @@ if command -v flatpak &>/dev/null; then
 
     # Applications to ensure are installed
     HOST_APPS=(
+        "com.brave.Browser"
         "com.google.Chrome"
         "us.zoom.Zoom"
         "dev.edfloreshz.CosmicTweaks"
