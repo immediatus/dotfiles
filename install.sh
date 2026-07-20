@@ -6,6 +6,15 @@ set -e
 HOST_HOME="${HOME}"
 DOTFILES="${HOST_HOME}/.dotfiles"
 
+# Ensure ~/.local/bin is in PATH for host commands
+mkdir -p "${HOST_HOME}/.local/bin"
+export PATH="${HOST_HOME}/.local/bin:${PATH}"
+
+# Configuration Flags
+UPDATE_SYSTEM=false
+INSTALL_LEMONADE=false
+INSTALL_LEMONADE_DAEMON=false
+
 # Helper function for prompting y/n (defaulting to Yes if enter is pressed)
 prompt_yn() {
     local prompt_text="$1"
@@ -20,8 +29,6 @@ prompt_yn() {
         fi
     done
 }
-
-UPDATE_SYSTEM=false
 
 echo "=== Installation Configuration ==="
 if prompt_yn "Would you like to check for and apply host OS (rpm-ostree) and Flatpak updates?"; then
@@ -140,7 +147,7 @@ if command -v flatpak &>/dev/null; then
     flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
     
     # Check if cosmic remote exists, otherwise add it (COSMIC desktop apps repo)
-    flatpak remote-add --user --if-not-exists cosmic https://repository.cosmic.system76.com/flatpak/cosmic.flatpakrepo || true
+    flatpak remote-add --user --if-not-exists cosmic https://apt.pop-os.org/cosmic/ || true
 
     # Applications to ensure are installed
     HOST_APPS=(
@@ -148,7 +155,7 @@ if command -v flatpak &>/dev/null; then
         "com.google.Chrome"
         "us.zoom.Zoom"
         "org.telegram.desktop"
-        "me.syncthing.Syncthing"
+        "com.github.martchus.syncthingtray"
         "com.heroicgameslauncher.hgl"
         "dev.edfloreshz.CosmicTweaks"
         "com.github.bgub.CosmicExtAppletVigil"
@@ -191,6 +198,14 @@ fi
 
 echo "=== Phase 3: Building Custom Distrobox Workspace Image ==="
 podman build -t my-dev-box -f "${DOTFILES}/distrobox/Containerfile" "${DOTFILES}/distrobox"
+
+# Ensure Distrobox is installed on host
+if ! command -v distrobox &>/dev/null; then
+    echo "      Distrobox not found on host. Installing Distrobox locally..."
+    mkdir -p "${HOST_HOME}/.local/bin"
+    curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh -s -- --prefix "${HOST_HOME}/.local"
+    export PATH="${HOST_HOME}/.local/bin:${PATH}"
+fi
 
 echo "=== Phase 4: Recreating Distrobox Workspace ==="
 # Remove any existing container instances
