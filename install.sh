@@ -132,19 +132,28 @@ fi
 
 echo "=== Phase 1.5: Installing Fonts on Host ==="
 FONT_DIR="${HOST_HOME}/.local/share/fonts"
-if [ ! -d "${FONT_DIR}/SauceCodePro" ]; then
-    echo "Installing SauceCodePro (Source Code Pro) Nerd Font..."
-    mkdir -p "${FONT_DIR}/SauceCodePro"
-    unzip -o -d "${FONT_DIR}/SauceCodePro" "${DOTFILES}/fonts/SourceCodePro.zip"
-    
-    # Update host font cache
-    if command -v fc-cache &>/dev/null; then
-        echo "Updating host font cache..."
-        fc-cache -f "${FONT_DIR}"
+LEGACY_FONT_DIR="${HOST_HOME}/.fonts"
+mkdir -p "${FONT_DIR}/SauceCodePro"
+mkdir -p "${LEGACY_FONT_DIR}/SauceCodePro"
+
+echo "Installing SauceCodePro (Source Code Pro) Nerd Font..."
+unzip -o -d "${FONT_DIR}/SauceCodePro" "${DOTFILES}/fonts/SourceCodePro.zip"
+unzip -o -d "${LEGACY_FONT_DIR}/SauceCodePro" "${DOTFILES}/fonts/SourceCodePro.zip"
+
+if command -v fc-cache &>/dev/null; then
+    echo "Updating host font cache..."
+    fc-cache -fv "${FONT_DIR}" "${LEGACY_FONT_DIR}" 2>/dev/null || true
+fi
+echo "SauceCodePro Nerd Font installed successfully!"
+
+echo "=== Phase 1.7: Installing Native Host Packages ==="
+if ! command -v alacritty &>/dev/null; then
+    echo "Installing Alacritty terminal on host..."
+    if command -v rpm-ostree &>/dev/null; then
+        rpm-ostree install -y alacritty || true
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y alacritty || true
     fi
-    echo "SauceCodePro Nerd Font installed successfully!"
-else
-    echo "SauceCodePro Nerd Font is already installed."
 fi
 
 echo "=== Phase 1.8: Installing Host Flatpak Applications ==="
@@ -180,12 +189,17 @@ if command -v flatpak &>/dev/null; then
             flatpak install -y --user --noninteractive flathub "${app}" 2>/dev/null || \
             flatpak install -y --user --noninteractive cosmic "${app}" 2>/dev/null || \
             flatpak install -y --user --noninteractive "${app}" || \
-            flatpak install -y --system --noninteractive "${app}" || \
             echo "WARNING: Failed to install ${app}"
         else
             echo "      ${app} is already installed."
         fi
     done
+
+    # Refresh COSMIC panel & dock to pick up newly stowed panel config, applets, and dock favorites
+    if command -v cosmic-panel &>/dev/null; then
+        echo "Reloading COSMIC desktop panel & dock to apply applets and icon layout..."
+        systemctl --user restart cosmic-panel cosmic-app-list cosmic-dock 2>/dev/null || true
+    fi
 else
     echo "      Flatpak is not installed on host. Skipping app installation."
 fi

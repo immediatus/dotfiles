@@ -1,6 +1,7 @@
 [
     "com.system76.CosmicFiles",
     "Alacritty",
-    "google-chrome",
-    "com.system76.CosmicStore",
+    "com.brave.Browser",
+    "com.google.Chrome",
+    "com.system76.CosmicStore"
 ]
