@@ -23,8 +23,9 @@ RUN dnf install -y \
     && dnf clean all \
     && ln -sf /usr/bin/7z /usr/local/bin/7zz
 
-# Copy bun from bun-source
+# Copy bun from bun-source and symlink bunx
 COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun
+RUN ln -sf /usr/local/bin/bun /usr/local/bin/bunx
 
 # Set Zsh as default
 RUN chsh -s /usr/bin/zsh

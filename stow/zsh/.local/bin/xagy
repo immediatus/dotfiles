@@ -1,2 +1,16 @@
 #!/usr/bin/env bash
-exec agy --dangerously-skip-permissions "$@"
+if command -v agy &>/dev/null; then
+    exec agy --dangerously-skip-permissions "$@"
+elif [ -x "/run/host/var/home/${USER}/.local/bin/agy" ]; then
+    exec "/run/host/var/home/${USER}/.local/bin/agy" --dangerously-skip-permissions "$@"
+elif [ -x "/run/host/home/${USER}/.local/bin/agy" ]; then
+    exec "/run/host/home/${USER}/.local/bin/agy" --dangerously-skip-permissions "$@"
+elif [ -x "$HOME/.local/bin/agy" ]; then
+    exec "$HOME/.local/bin/agy" --dangerously-skip-permissions "$@"
+elif command -v distrobox &>/dev/null; then
+    exec distrobox enter dev-workspace -- agy --dangerously-skip-permissions "$@"
+else
+    echo "Error: Antigravity CLI ('agy') binary not found at ~/.local/bin/agy on host."
+    echo "Please copy your 'agy' binary into ~/.local/bin/agy or download it."
+    exit 1
+fi

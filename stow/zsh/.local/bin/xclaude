@@ -1,2 +1,9 @@
 #!/usr/bin/env bash
-exec claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions --allow-dangerously-skip-permissions --remote-control "$(basename "$PWD")" "$@"
+if command -v claude &>/dev/null; then
+    exec claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions --allow-dangerously-skip-permissions --remote-control "$(basename "$PWD")" "$@"
+elif command -v distrobox &>/dev/null; then
+    exec distrobox enter dev-workspace -- claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions --allow-dangerously-skip-permissions --remote-control "$(basename "$PWD")" "$@"
+else
+    echo "Error: Claude Code is not installed."
+    exit 1
+fi

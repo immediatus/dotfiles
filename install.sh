@@ -12,6 +12,9 @@ export PATH="${HOST_HOME}/.local/bin:${PATH}"
 
 # Configuration Flags
 UPDATE_SYSTEM=false
+CLEAN_ENV=false
+SWAP_CMD_CTRL=false
+INSTALL_CHROME=false
 INSTALL_LEMONADE=false
 INSTALL_LEMONADE_DAEMON=false
 
@@ -31,6 +34,15 @@ prompt_yn() {
 }
 
 echo "=== Installation Configuration ==="
+if prompt_yn "Would you like to perform a clean reset of existing container environment (~/.local/share/dev-workspace)?"; then
+    CLEAN_ENV=true
+fi
+if prompt_yn "Would you like to swap Left Command (Super) and Left Control keys in COSMIC desktop?"; then
+    SWAP_CMD_CTRL=true
+fi
+if prompt_yn "Would you like to install Google Chrome (Flatpak)?"; then
+    INSTALL_CHROME=true
+fi
 if prompt_yn "Would you like to check for and apply host OS (rpm-ostree) and Flatpak updates?"; then
     UPDATE_SYSTEM=true
 fi
@@ -55,6 +67,18 @@ if [ "$UPDATE_SYSTEM" = "true" ]; then
     fi
 fi
 
+if [ "$CLEAN_ENV" = "true" ]; then
+    echo "=== Phase 0.5: Performing Clean Environment Reset ==="
+    if command -v distrobox &>/dev/null; then
+        echo "Removing existing container instances..."
+        distrobox rm -f dev-workspace dev-station 2>/dev/null || true
+    fi
+    echo "Resetting container home directory (~/.local/share/dev-workspace)..."
+    rm -rf "${HOST_HOME}/.local/share/dev-workspace"
+    echo "Cleaning host-level symlinks..."
+    rm -f "${HOST_HOME}/.config/alacritty/alacritty.toml" "${HOST_HOME}/.config/environment.d/10-local-bin.conf"
+fi
+
 echo "=== Phase 1: Creating Host-Level Symlinks ==="
 mkdir -p "${HOST_HOME}/.config/alacritty"
 rm -f "${HOST_HOME}/.config/alacritty/alacritty.toml"
@@ -74,6 +98,37 @@ for item in ".config/cosmic" ".config/dconf/cosmic" ".config/environment.d/cosmi
         mv "${HOST_HOME}/${item}" "${HOST_HOME}/${item}.bak"
     fi
 done
+
+# Configure keymap swap (Command <-> Control) based on user confirmation
+XKB_CONF="${DOTFILES}/stow/cosmic/.config/cosmic/com.system76.CosmicComp/v1/xkb_config"
+mkdir -p "$(dirname "$XKB_CONF")"
+if [ "$SWAP_CMD_CTRL" = "true" ]; then
+    echo "      Configuring COSMIC keymap: Swapping Left Command (Super) and Left Control keys..."
+    cat << 'EOF' > "$XKB_CONF"
+(
+    rules: "",
+    model: "pc105",
+    layout: "us,ua",
+    variant: ",",
+    options: Some("ctrl:swap_lwin_lctl"),
+    repeat_delay: 400,
+    repeat_rate: 25,
+)
+EOF
+else
+    echo "      Configuring COSMIC keymap: Standard Left Command and Left Control keys..."
+    cat << 'EOF' > "$XKB_CONF"
+(
+    rules: "",
+    model: "pc105",
+    layout: "us,ua",
+    variant: ",",
+    options: None,
+    repeat_delay: 400,
+    repeat_rate: 25,
+)
+EOF
+fi
 
 if command -v stow &>/dev/null; then
     echo "      Stowing COSMIC configuration using GNU Stow (with --no-folding)..."
@@ -116,13 +171,19 @@ mkdir -p "${HOST_HOME}/.claude"
 touch "${HOST_HOME}/.claude.json"
 mkdir -p "${HOST_HOME}/.gemini"
 
-# Ensure Antigravity CLI (agy) is installed on host
+# Ensure Antigravity CLI (agy) is downloaded and installed on host from Google
+mkdir -p "${HOST_HOME}/.local/bin"
 if [ ! -f "${HOST_HOME}/.local/bin/agy" ]; then
-    echo "=== Installing Antigravity CLI (agy) on host ==="
-    mkdir -p "${HOST_HOME}/.local/bin"
-    curl -fsSL https://antigravity.google/download/install.sh | bash 2>/dev/null || echo "Notice: Standard agy download skipped. Copying local agy binary if present."
+    echo "=== Downloading & Installing Antigravity CLI (agy) from Google ==="
+    echo "Running official installer: curl -fsSL https://antigravity.google/cli/install.sh | bash"
+    curl -fsSL https://antigravity.google/cli/install.sh | bash || true
 fi
-chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" "${HOST_HOME}/.gemini" "${HOST_HOME}/.local/bin/agy" 2>/dev/null || true
+
+if [ -f "${HOST_HOME}/.local/bin/agy" ]; then
+    chmod +x "${HOST_HOME}/.local/bin/agy"
+    chcon -t container_file_t "${HOST_HOME}/.local/bin/agy" 2>/dev/null || true
+fi
+chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" "${HOST_HOME}/.gemini" 2>/dev/null || true
 
 # Ensure host-level bin directory exists and symlink the lemonade CLI if requested
 if [ "$INSTALL_LEMONADE" = "true" ]; then
@@ -169,7 +230,6 @@ if command -v flatpak &>/dev/null; then
     # Applications to ensure are installed
     HOST_APPS=(
         "com.brave.Browser"
-        "com.google.Chrome"
         "us.zoom.Zoom"
         "org.telegram.desktop"
         "io.github.martchus.syncthingtray"
@@ -181,6 +241,9 @@ if command -v flatpak &>/dev/null; then
         "org.gnome.Papers"
         "org.gnome.SimpleScan"
     )
+    if [ "$INSTALL_CHROME" = "true" ]; then
+        HOST_APPS+=("com.google.Chrome")
+    fi
 
     for app in "${HOST_APPS[@]}"; do
         if ! flatpak list --columns=application | grep -q "^${app}$"; then
@@ -247,26 +310,20 @@ distrobox create --name dev-workspace --image my-dev-box \
 
 echo "=== Phase 5: Initializing GNU Stow inside Container ==="
 # Clean up existing files in container home to prevent Stow/symlink conflicts
-distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local ~/.local/bin/llama ~/.local/bin/lemonade ~/.local/bin/docker ~/.local/bin/podman ~/.local/bin/xagy ~/.local/bin/xclaude'
+distrobox enter dev-workspace -- sh -c 'rm -rf ~/.config/alacritty ~/.config/starship.toml ~/.config/nvim ~/.config/yazi ~/.config/git ~/.config/eza ~/.npmrc ~/.gitconfig ~/.zshrc ~/.zprofile ~/.profile ~/.zsh ~/.claude.json ~/.ssh ~/.zshrc.local ~/.gitconfig.local'
 
-# Symlink host's .dotfiles folder inside the container home so Stow can find it
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.dotfiles" "/home/${USER}/.local/share/dev-workspace/.dotfiles"
+# Symlink host dotfiles into container home so Stow can find it
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/.dotfiles" ~/.dotfiles 2>/dev/null || ln -sfn "/run/host/home/'"${USER}"'/.dotfiles" ~/.dotfiles 2>/dev/null || true'
 
-# Symlink direct volume mount paths inside the container home for path alignment
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/code" "/home/${USER}/.local/share/dev-workspace/code"
-
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.claude" "/home/${USER}/.local/share/dev-workspace/.claude"
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync" "/home/${USER}/.local/share/dev-workspace/Sync"
-# Symlink host .gemini so agy conversations are accessible inside container
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.gemini" "/home/${USER}/.local/share/dev-workspace/.gemini"
-# Symlink host .claude.json so Claude Code state and authentication are shared
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.claude.json" "/home/${USER}/.local/share/dev-workspace/.claude.json"
-# Symlink host .ssh so SSH keys and configurations are shared
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.ssh" "/home/${USER}/.local/share/dev-workspace/.ssh"
-# Symlink host synced local configurations via volume mount
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync/config/.zshrc.local" "/home/${USER}/.local/share/dev-workspace/.zshrc.local"
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/Sync/config/.gitconfig.local" "/home/${USER}/.local/share/dev-workspace/.gitconfig.local"
-
+# Symlink direct volume mount paths inside container home using /run/host paths
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/code" ~/code 2>/dev/null || true'
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/.claude" ~/.claude 2>/dev/null || true'
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/Sync" ~/Sync 2>/dev/null || true'
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/.gemini" ~/.gemini 2>/dev/null || true'
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/.claude.json" ~/.claude.json 2>/dev/null || true'
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/.ssh" ~/.ssh 2>/dev/null || true'
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/Sync/config/.zshrc.local" ~/.zshrc.local 2>/dev/null || true'
+distrobox enter dev-workspace -- sh -c 'ln -sfn "/run/host/var/home/'"${USER}"'/Sync/config/.gitconfig.local" ~/.gitconfig.local 2>/dev/null || true'
 
 # Clone Oh My Zsh to the container's isolated home directory if not present
 if [ ! -d "${HOST_HOME}/.local/share/dev-workspace/.oh-my-zsh" ]; then
@@ -274,21 +331,18 @@ if [ ! -d "${HOST_HOME}/.local/share/dev-workspace/.oh-my-zsh" ]; then
     git clone https://github.com/ohmyzsh/ohmyzsh.git "${HOST_HOME}/.local/share/dev-workspace/.oh-my-zsh"
 fi
 
-# Ensure Zsh plugins are cloned in dotfiles stow structure before running Stow
-echo "Ensuring cloneable Zsh plugins are present..."
+# Ensure Zsh plugins are present in stow/zsh/.zsh/plugins
 mkdir -p "${DOTFILES}/stow/zsh/.zsh/plugins"
 if [ ! -f "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
-    echo "Cloning or restoring zsh-autosuggestions..."
-    rm -rf "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-autosuggestions"
+    echo "Cloning zsh-autosuggestions..."
     git clone https://github.com/zsh-users/zsh-autosuggestions.git "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-autosuggestions"
 fi
 if [ ! -f "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
-    echo "Cloning or restoring zsh-syntax-highlighting..."
-    rm -rf "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting"
+    echo "Cloning zsh-syntax-highlighting..."
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${DOTFILES}/stow/zsh/.zsh/plugins/zsh-syntax-highlighting"
 fi
 
-# Run GNU Stow inside the container to symlink dev configurations
+# Run GNU Stow inside the container
 STOW_PACKAGES=(alacritty zsh starship nvim yazi git eza npm)
 if [ "$INSTALL_LEMONADE" = "true" ]; then
     STOW_PACKAGES+=(lemonade)
@@ -296,21 +350,17 @@ fi
 distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" "${STOW_PACKAGES[@]}"
 
 # Symlink bun and bunx inside container .local/bin for MCP servers compatibility
-distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bun" "/home/${USER}/.local/share/dev-workspace/.local/bin/bun"
-distrobox enter dev-workspace -- ln -sfn "../../.bun/bin/bunx" "/home/${USER}/.local/share/dev-workspace/.local/bin/bunx"
-# Symlink agy inside container .local/bin for developer use
-distrobox enter dev-workspace -- ln -sfn "/home/${USER}/.local/bin/agy" "/home/${USER}/.local/share/dev-workspace/.local/bin/agy"
+distrobox enter dev-workspace -- sh -c 'mkdir -p ~/.local/bin && ln -sfn /usr/local/bin/bun ~/.local/bin/bun && ln -sfn /usr/local/bin/bunx ~/.local/bin/bunx'
+# Symlink host agy binary inside container .local/bin
+distrobox enter dev-workspace -- sh -c 'mkdir -p ~/.local/bin && (ln -sfn "/run/host/var/home/'"${USER}"'/.local/bin/agy" ~/.local/bin/agy 2>/dev/null || ln -sfn "/run/host/home/'"${USER}"'/.local/bin/agy" ~/.local/bin/agy 2>/dev/null || true)'
 
 
 # Change default container shell to Zsh
 distrobox enter dev-workspace -- sudo chsh -s /usr/bin/zsh "${USER}"
 
 echo "=== Phase 6: Cleaning Host Home of Duplicate Configurations ==="
-# Prevent host environment contamination
+# Prevent host environment contamination (keep .bashrc/.profile with ~/.local/bin in PATH)
 configs=(
-    ".zshrc"
-    ".zprofile"
-    ".profile"
     ".npmrc"
     ".gitconfig"
     ".zsh"
@@ -319,6 +369,14 @@ for item in "${configs[@]}"; do
     if [ -e "${HOST_HOME}/${item}" ]; then
         echo "Removing host ${item}..."
         rm -rf "${HOST_HOME}/${item}"
+    fi
+done
+
+# Ensure host shell PATH includes ~/.local/bin for agy in cosmic-term and host shells
+for profile_file in "${HOST_HOME}/.bashrc" "${HOST_HOME}/.profile"; do
+    touch "${profile_file}"
+    if ! grep -q '\.local/bin' "${profile_file}" 2>/dev/null; then
+        echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${profile_file}"
     fi
 done
 
