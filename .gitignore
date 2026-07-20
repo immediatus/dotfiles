@@ -5,9 +5,17 @@
 *.tmp
 .DS_Store
 
-# Ignore credentials or local settings if any are created
+# Ignore credentials, API keys, tokens, and agent state
 .env
-.env.local
+.env.*
+*.pem
+*.key
+*.token
+.claude/
+.claude.json
+.gemini/
+.ssh/
+settings.json
 
 # Ignore container state/logs
 *.log

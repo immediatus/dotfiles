@@ -115,6 +115,13 @@ chmod 700 "${HOST_HOME}/.ssh"
 mkdir -p "${HOST_HOME}/.claude"
 touch "${HOST_HOME}/.claude.json"
 mkdir -p "${HOST_HOME}/.gemini"
+
+# Ensure Antigravity CLI (agy) is installed on host
+if [ ! -f "${HOST_HOME}/.local/bin/agy" ]; then
+    echo "=== Installing Antigravity CLI (agy) on host ==="
+    mkdir -p "${HOST_HOME}/.local/bin"
+    curl -fsSL https://antigravity.google/download/install.sh | bash 2>/dev/null || echo "Notice: Standard agy download skipped. Copying local agy binary if present."
+fi
 chcon -R -t container_file_t "${HOST_HOME}/.claude" "${HOST_HOME}/.claude.json" "${HOST_HOME}/.gemini" "${HOST_HOME}/.local/bin/agy" 2>/dev/null || true
 
 # Ensure host-level bin directory exists and symlink the lemonade CLI if requested
@@ -156,7 +163,7 @@ if command -v flatpak &>/dev/null; then
         "com.google.Chrome"
         "us.zoom.Zoom"
         "org.telegram.desktop"
-        "com.github.martchus.syncthingtray"
+        "io.github.martchus.syncthingtray"
         "com.heroicgameslauncher.hgl"
         "dev.edfloreshz.CosmicTweaks"
         "com.github.bgub.CosmicExtAppletVigil"
