@@ -349,8 +349,8 @@ if [ "$INSTALL_LEMONADE" = "true" ]; then
 fi
 distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" "${STOW_PACKAGES[@]}"
 
-# Symlink bun and bunx inside container .local/bin for MCP servers compatibility
-distrobox enter dev-workspace -- sh -c 'mkdir -p ~/.local/bin && ln -sfn /usr/local/bin/bun ~/.local/bin/bun && ln -sfn /usr/local/bin/bunx ~/.local/bin/bunx'
+# Symlink bun, bunx, and claude inside container .local/bin for MCP servers compatibility
+distrobox enter dev-workspace -- sh -c 'mkdir -p ~/.local/bin && ln -sfn /usr/local/bin/bun ~/.local/bin/bun && ln -sfn /usr/local/bin/bunx ~/.local/bin/bunx && ln -sfn /usr/local/bin/claude ~/.local/bin/claude'
 # Symlink host agy binary inside container .local/bin
 distrobox enter dev-workspace -- sh -c 'mkdir -p ~/.local/bin && (ln -sfn "/run/host/var/home/'"${USER}"'/.local/bin/agy" ~/.local/bin/agy 2>/dev/null || ln -sfn "/run/host/home/'"${USER}"'/.local/bin/agy" ~/.local/bin/agy 2>/dev/null || true)'
 
