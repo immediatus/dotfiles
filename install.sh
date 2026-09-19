@@ -162,9 +162,24 @@ mkdir -p "${HOST_HOME}/Sync/config"
 mkdir -p "${HOST_HOME}/.cache/huggingface"
 chmod 700 "${HOST_HOME}/code/.Trash-1000" "${HOST_HOME}/code/.Trash-1000/files" "${HOST_HOME}/code/.Trash-1000/info"
 
-# Ensure host-level .ssh directory exists with correct permissions
+# Ensure host-level .ssh directory and SSH key exist with correct permissions
 mkdir -p "${HOST_HOME}/.ssh"
 chmod 700 "${HOST_HOME}/.ssh"
+
+if [ ! -f "${HOST_HOME}/.ssh/id_ed25519" ]; then
+    echo "=== Generating Host-Level Ed25519 SSH Key ==="
+    SSH_COMMENT="${USER}@$(hostname -s 2>/dev/null || echo 'fedora')"
+    ssh-keygen -t ed25519 -C "${SSH_COMMENT}" -f "${HOST_HOME}/.ssh/id_ed25519" -N ""
+    chmod 600 "${HOST_HOME}/.ssh/id_ed25519"
+    chmod 644 "${HOST_HOME}/.ssh/id_ed25519.pub"
+    echo "Host SSH key created: ${HOST_HOME}/.ssh/id_ed25519"
+fi
+
+# Enable host-level systemd ssh-agent service
+if command -v systemctl &>/dev/null; then
+    echo "=== Enabling Host SSH Agent Service ==="
+    systemctl --user enable --now ssh-agent 2>/dev/null || true
+fi
 
 # Ensure host-level .claude, .claude.json, and .gemini exist with container-accessible labels
 mkdir -p "${HOST_HOME}/.claude"
@@ -351,7 +366,7 @@ STOW_PACKAGES=(alacritty zsh starship nvim yazi git eza npm)
 if [ "$INSTALL_LEMONADE" = "true" ]; then
     STOW_PACKAGES+=(lemonade)
 fi
-distrobox enter dev-workspace -- stow -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" "${STOW_PACKAGES[@]}"
+distrobox enter dev-workspace -- stow --no-folding -d "/home/${USER}/.local/share/dev-workspace/.dotfiles/stow" -t "/home/${USER}/.local/share/dev-workspace" "${STOW_PACKAGES[@]}"
 
 # Symlink bun, bunx, and claude inside container .local/bin for MCP servers compatibility
 distrobox enter dev-workspace -- sh -c 'mkdir -p ~/.local/bin && ln -sfn /usr/local/bin/bun ~/.local/bin/bun && ln -sfn /usr/local/bin/bunx ~/.local/bin/bunx && ln -sfn /usr/local/bin/claude ~/.local/bin/claude'

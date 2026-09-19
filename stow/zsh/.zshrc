@@ -46,8 +46,9 @@ export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/podman/podman.sock"
 # 2. Oh My Zsh Initialization
 # -----------------------------------------------------------------------------
 export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="robbyrussell"
-plugins=(git jenv pyenv common-aliases fzf)
+zstyle :omz:plugins:ssh-agent identities id_ed25519 id_rsa
+zstyle :omz:plugins:ssh-agent quiet yes
+plugins=(git jenv pyenv common-aliases fzf ssh-agent)
 
 # Initialize OhMyZsh
 if [ -d "$ZSH" ]; then
@@ -93,8 +94,8 @@ fi
 # Modern alternatives (with fallback to standard coreutils)
 if command -v eza &>/dev/null; then
     alias l='eza --icons'
-    alias ll='eza --icons --group-directories-first --header --no-user --colour-scale -l'
-    alias la='eza --icons --group-directories-first --header --no-user --colour-scale -al'
+    alias ll='eza --icons --group-directories-first --header --no-user --color-scale -l'
+    alias la='eza --icons --group-directories-first --header --no-user --color-scale -al'
 else
     alias l='ls -CF'
     alias ll='ls -alF'

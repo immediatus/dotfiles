@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Syncthing Tray
+Comment=Syncthing Tray Application
+Exec=flatpak run io.github.martchus.syncthingtray
+Icon=io.github.martchus.syncthingtray
+Terminal=false
+Categories=Network;FileTransfer;
